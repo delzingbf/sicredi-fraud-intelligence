@@ -99,7 +99,9 @@ Do not move responsibilities between owners without team coordination.
 7. `checkCustomerRiskEvents` — P2
 8. `getRiskPolicy` — static config response
 9. `checkGeographicConsistency` — implement only if geographic data is confirmed usable
-10. `requestMemberVerification` — gated by `PolicyService`; never a free LLM call
+10. `requestMemberVerification` — **not a tool**: the agent only recommends it; the API
+    endpoint `POST /investigations/:id/member-verification` runs it, gated by `PolicyService`
+    on the server-stored report
 
 Every tool returns a `ToolResult<T>` envelope:
 ```typescript
@@ -153,7 +155,8 @@ For credential setup, see `docs/IBM_WATSONX_SETUP.md`.
 
 - `feedback_label` is **never** included in any tool response or database query result
 - Tool names are validated against a whitelist in `ToolRegistry` before execution
-- The agent cannot call `requestMemberVerification` without `PolicyService` approval
+- `requestMemberVerification` is never callable by the agent; the API gates it with `PolicyService`
+  using the report stored server-side (the client never supplies the report)
 - The final report is validated by Zod before any downstream action
 - Max investigation rounds enforced by `AgentOrchestrator` code, not the model
 - `synchronize: false` in TypeORM — schema changes only via explicit migration files

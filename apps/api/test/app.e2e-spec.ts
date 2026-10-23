@@ -8,8 +8,7 @@ describe('Health (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    // e2e tests require IBM_PROJECT_ID and IBM_ACCESS_TOKEN in the environment.
-    // Set them before running: IBM_PROJECT_ID=x IBM_ACCESS_TOKEN=x pnpm test:e2e
+    // Dummy IBM credentials come from vitest.config.e2e.ts (test.env).
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

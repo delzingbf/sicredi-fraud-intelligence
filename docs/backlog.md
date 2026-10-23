@@ -191,7 +191,7 @@ Implementar o loop ReAct em TypeScript — uma migração direta e tipada do
 
 ### Tarefas
 - [ ] Criar `apps/api/src/agent/agent.orchestrator.ts`
-- [ ] Implementar `investigate(request: InvestigationRequest): Promise<string>` — retorna o texto final do modelo
+- [ ] Implementar `investigate(request: InvestigationRequest, signal: AbortSignal): Promise<AgentResult>` — retorna `{ finalText, toolsExecuted }` (contrato em `agent.orchestrator.interface.ts`) e interrompe as chamadas à IBM quando `signal` é abortado
 - [ ] Portar o loop de rodadas do PoC: build messages → call Granite → process tool_calls → push results → repeat
 - [ ] Aplicar limite de rodadas via `MAX_INVESTIGATION_ROUNDS` (env)
 - [ ] Criar `apps/api/src/agent/system-prompt.ts` com o prompt do investigador
@@ -294,20 +294,18 @@ padrão de gastos e contexto da transação.
 **Sub-Task do plano:** Sub-Task 7
 
 ### Objetivo
-Completar o catálogo com as ferramentas restantes e finalizar `requestMemberVerification`
-com a gate do `PolicyService`.
+Completar o catálogo com as ferramentas restantes. `requestMemberVerification` já foi
+entregue como ação pós-investigação na API (Issue #9) e não é uma tool do `ToolRegistry`.
 
 ### Tarefas
 - [ ] Implementar `checkMerchantHistory`
 - [ ] Implementar `checkCustomerRiskEvents`
 - [ ] Implementar `getRiskPolicy` como resposta estática de config
 - [ ] Implementar ou stub `checkGeographicConsistency` baseado no `docs/data-contract.md`
-- [ ] Finalizar `requestMemberVerification` com gate do `PolicyService` dentro do `ToolRegistry`
-- [ ] Rodar investigação end-to-end com todas as 10 ferramentas registradas
+- [ ] Rodar investigação end-to-end com todas as 9 ferramentas registradas
 
 ### Critérios de aceite
-- Todas as 10 ferramentas registradas no `ToolRegistry`
-- `requestMemberVerification` não executa sem aprovação do `PolicyService`
+- Todas as 9 ferramentas registradas no `ToolRegistry`
 - Investigação end-to-end completa sem erros
 
 ---

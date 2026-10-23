@@ -20,10 +20,20 @@ architecture record.
 | Granite 4 H Small — tool calling working | ✅ VALIDATED |
 | ReAct loop with 2 mock tools (PoC) | ✅ VALIDATED |
 | watsonx Orchestrate | ❌ Trial expired — unavailable |
-| NestJS scaffold | ⏳ PENDING — Sub-Task 1 |
+| NestJS scaffold + monorepo + health check | ✅ DONE — Sub-Task 1 |
+| `packages/contracts` shared types | ✅ DONE — Sub-Task 1 |
+| `PolicyService` + Zod schema validation | ✅ DONE — Sub-Task 5 |
+| `InvestigationService` + fallback `INCONCLUSIVE` | ✅ DONE — Sub-Task 5 |
+| `POST /investigations` controller + DTO | ✅ DONE — Sub-Task 5 |
+| `IAgentOrchestrator` interface + `AgentError` | ✅ DONE — Sub-Task 5 |
+| Global exception filter | ✅ DONE — Sub-Task 5 |
 | PostgreSQL / TypeORM / Docker Compose | ⏳ PENDING — Sub-Task 1 |
-| DataService / real tools | ⏳ PENDING — Sub-Tasks 2–3 |
+| DataService / CSV import / migrations | ⏳ PENDING — Sub-Tasks 2–3 |
+| `WatsonxClient` + `AgentOrchestrator` (real) | ⏳ PENDING — Sub-Task 4 |
+| Analytical tools (velocity, spending, context) | ⏳ PENDING — Sub-Task 6 |
+| Remaining tools + `requestMemberVerification` gate | ⏳ PENDING — Sub-Task 7 |
 | React frontend | ⏳ PENDING — Sub-Task 8 |
+| Evaluation harness | ⏳ PENDING — Sub-Task 9 |
 
 ### Confirmed decisions
 
@@ -165,13 +175,10 @@ src/
 ## Shared Contracts (`packages/contracts/src/index.ts`)
 
 ```typescript
-// Investigation request
+// Investigation request — only transactionId comes from the client; the backend
+// resolves every other transaction field from DataService.
 export interface InvestigationRequest {
   transactionId: string;
-  customerId: string;
-  amount: number;
-  timestamp: string;        // ISO-8601
-  metadata?: Record<string, unknown>;
 }
 
 // Standard tool response envelope
@@ -207,7 +214,28 @@ export interface InvestigationReport {
   requiresHumanReview: boolean;
   confidence: Confidence;
 }
+
+// POST /investigations response
+export interface InvestigationResult {
+  investigationId: string;  // server-generated UUID v4
+  report: InvestigationReport;
+}
+
+// Simulated member verification
+export type VerificationStatus = 'PENDING' | 'CONFIRMED' | 'DENIED';
+export type VerificationDecision = Exclude<VerificationStatus, 'PENDING'>;
+
+export interface VerificationRecord {
+  investigationId: string;
+  transactionId: string;
+  status: VerificationStatus;
+  requestedAt: string;      // ISO-8601
+  resolvedAt?: string;      // ISO-8601
+}
 ```
+
+`packages/contracts` is **types only** — it is consumed from source and every
+import is erased at compile time. Do not add runtime values (`const`, `enum`, `class`).
 
 ---
 
@@ -387,37 +415,83 @@ redesign.
 output and gates interventions, and the InvestigationService that wires together
 the orchestrator with the policy layer as a single use-case entry point.
 
-**Status:** [ ] pending
+**Status:** [x] done — 2026-10-23
 
-**Expected Outcomes:**
-- `PolicyService` validates the `InvestigationReport` via Zod and returns either
-  a validated report or a list of validation errors.
-- `PolicyService` has a method `canRequestMemberVerification(report)` that returns
-  a boolean based on deterministic rules (e.g., riskLevel must be HIGH_RISK or
-  SUSPICIOUS to allow the action).
-- `InvestigationService` calls `AgentOrchestrator`, parses the output as JSON,
-  passes it through `PolicyService`, and returns the validated report.
-- If the agent returns malformed JSON, `InvestigationService` returns a safe fallback
-  report with `riskLevel: INCONCLUSIVE` and `requiresHumanReview: true`.
-- `InvestigationController` wires `POST /investigations` to `InvestigationService`.
-- End-to-end test: POST a transaction, receive a validated `InvestigationReport`.
+**Implemented files:**
 
-**Todo:**
-1. Define the Zod schema for `InvestigationReport` in `apps/api`.
-2. Implement `PolicyService.validate(report)` — returns parsed report or throws.
-3. Implement `PolicyService.canRequestMemberVerification(report)` — deterministic rule.
-4. Implement `InvestigationService.investigate(request)` — full use case flow.
-5. Implement `InvestigationController` with `POST /investigations` and input validation DTO.
-6. Add global NestJS exception filter for consistent error responses.
-7. Write unit tests for `PolicyService` covering valid reports, invalid schemas, and gating rules.
-8. Write integration test: POST → AgentOrchestrator → PolicyService → validated report.
+| File | Description |
+|---|---|
+| `apps/api/src/policy/investigation-report.schema.ts` | Zod schema mirroring `InvestigationReport` + semantic invariants (`superRefine`); bidirectional compile-time type guard |
+| `apps/api/src/policy/policy.service.ts` | `validate(raw)` → `ValidationResult` (never throws) + `canRequestMemberVerification(report)` |
+| `apps/api/src/policy/policy.module.ts` | NestJS module exporting `PolicyService` |
+| `apps/api/src/agent/agent.orchestrator.interface.ts` | `IAgentOrchestrator`, `AgentResult`, `AGENT_ORCHESTRATOR` token, `AgentError` / `AgentErrorCode` |
+| `apps/api/src/agent/agent.module.ts` | Provides `AGENT_ORCHESTRATOR` — mock returning `INCONCLUSIVE` until Dev C delivers |
+| `apps/api/src/investigation/investigation.service.ts` | Use case: agent (timeout + `AbortSignal`) → parse → validate → `transactionId` check → authoritative `toolsExecuted` → store; `INCONCLUSIVE` fallback on any failure |
+| `apps/api/src/investigation/investigation.store.ts` | In-memory, bounded (1 000) store of reports + verification state, keyed by `investigationId` |
+| `apps/api/src/investigation/verification.service.ts` | Simulated member verification: `PENDING` → `CONFIRMED`/`DENIED`, gate evaluated on the stored report |
+| `apps/api/src/investigation/investigation.controller.ts` | Investigation + verification endpoints (see below) |
+| `apps/api/src/investigation/dto/*.schema.ts` | Zod request schemas (`.strict()`) |
+| `apps/api/src/common/zod/` | `ZodValidationPipe` + `formatZodIssues` (shared by controller and `PolicyService`) |
+| `apps/api/src/common/filters/http-exception.filter.ts` | Global exception filter: `HttpException` forwarded; unknown errors → 500 without details |
+| `apps/api/src/configure-app.ts` | Global app setup shared by `main.ts` and e2e tests |
+| `apps/api/test/investigations.e2e-spec.ts` | e2e on the real `AppModule`: wiring, validation, fallbacks, full verification flow and forgery attempts |
+
+**Test results:** 46 unit tests ✅ — 28 e2e tests ✅ (no IBM credentials needed;
+`vitest.config.e2e.ts` injects dummy values).
+
+**HTTP API (for Dev D):**
+
+| Method + path | Body | Response |
+|---|---|---|
+| `POST /investigations` | `{ transactionId }` — 1–100 chars, `[A-Za-z0-9_-]`, no other fields | `200 InvestigationResult` (always 200; failures → `INCONCLUSIVE`) · `400` invalid body |
+| `POST /investigations/:id/member-verification` | none | `200 VerificationRecord` (`PENDING`) · `400` id not UUID · `403` policy denies · `404` unknown id · `409` already requested |
+| `POST /investigations/:id/member-verification/confirm` | `{ decision }` — `CONFIRMED` or `DENIED` | `200 VerificationRecord` · `400` · `404` not requested · `409` already resolved |
+| `GET /investigations/:id/member-verification` | — | `200 VerificationRecord` · `404` |
+
+The verification gate always evaluates the report the backend stored for `:id`.
+The client never sends a report, so it cannot forge one.
+
+**Agent integration contract (for Dev C):**
+
+`AgentOrchestrator` must implement `IAgentOrchestrator` from
+`apps/api/src/agent/agent.orchestrator.interface.ts`:
+
+```typescript
+interface AgentResult {
+  finalText: string;        // model's final message (raw JSON report)
+  toolsExecuted: string[];  // tools actually dispatched, in order
+}
+
+interface IAgentOrchestrator {
+  investigate(request: InvestigationRequest, signal: AbortSignal): Promise<AgentResult>;
+}
+```
+
+- Happy path: resolves with `AgentResult`. `toolsExecuted` is authoritative and
+  replaces whatever list the model writes in its report.
+- Error path: rejects with `AgentError` using `'IBM_ERROR' | 'ROUND_LIMIT' | 'EMPTY_RESPONSE'`.
+- `signal` is aborted after `INVESTIGATION_TIMEOUT_MS` (`TIMEOUT` is raised by
+  `InvestigationService`). Pass it to every `fetch()` to IBM and stop between
+  rounds when `signal.aborted`.
+- `request` carries only `transactionId`; fetch the transaction context through
+  the tools / `DataService`.
+
+To plug in the real implementation, change only `AgentModule`:
+`{ provide: AGENT_ORCHESTRATOR, useClass: AgentOrchestrator }`.
+
+**`requestMemberVerification` (decision for Dev C / Sub-Task 7):**
+
+It is **not** a tool in `ToolRegistry`. The agent can only *recommend* it via
+`recommendedAction: 'REQUEST_MEMBER_VERIFICATION'`; the verification itself is a
+post-investigation action through the endpoints above, gated by
+`PolicyService.canRequestMemberVerification()` on the stored report.
 
 **Relevant Context:**
 - `InvestigationReport` type lives in `packages/contracts`.
-- The Zod schema in `apps/api` must mirror that type — consider zod-to-ts or manual alignment.
-- The agent's JSON report must be embedded in the model's final text response.
-  The system prompt (Sub-Task 4) must instruct the model to output ONLY valid JSON
-  when concluding an investigation — document this in the system prompt module.
+- The Zod schema uses `z.literal('1.0')` for `schemaVersion` — the agent must
+  output exactly `"schemaVersion": "1.0"` in its final JSON response.
+- The system prompt (Sub-Task 4) must instruct the model to output ONLY raw JSON
+  as its final message — no prose, no markdown fences.
 
 **Owner:** Dev B
 
@@ -465,7 +539,7 @@ core fraud signals. These depend on `DataService` (Sub-Task 3) being complete.
 
 **Intent:** Implement `checkMerchantHistory`, `checkCustomerRiskEvents`,
 `getRiskPolicy`, and — only if geographic data is adequate — `checkGeographicConsistency`.
-`requestMemberVerification` is also finalized here with the full PolicyService gate.
+(`requestMemberVerification` is already delivered as a post-investigation API action — see Sub-Task 5.)
 
 **Status:** [ ] pending
 
@@ -473,9 +547,7 @@ core fraud signals. These depend on `DataService` (Sub-Task 3) being complete.
 - `checkMerchantHistory` returns merchant-level aggregate statistics.
 - `checkCustomerRiskEvents` returns prior risk events from the customer's history.
 - `getRiskPolicy` returns the static policy config (no DB needed).
-- `requestMemberVerification` is registered in `ToolRegistry` but its execution is
-  gated: `ToolRegistry.execute('requestMemberVerification', args)` calls
-  `PolicyService.canRequestMemberVerification()` before proceeding.
+- `requestMemberVerification` is NOT registered in `ToolRegistry` (see Sub-Task 5).
 - `checkGeographicConsistency` is implemented only if geographic columns are
   confirmed usable in `docs/data-contract.md`; otherwise it is stubbed to return
   `status: 'unavailable'`.
@@ -485,10 +557,9 @@ core fraud signals. These depend on `DataService` (Sub-Task 3) being complete.
 1. Implement `checkMerchantHistory` using `DataService`.
 2. Implement `checkCustomerRiskEvents` using `DataService`.
 3. Implement `getRiskPolicy` as a static config-driven response.
-4. Implement `requestMemberVerification` with PolicyService gate inside `ToolRegistry`.
-5. Implement or stub `checkGeographicConsistency` based on data findings.
-6. Write unit tests for each.
-7. Run a full end-to-end investigation with all 10 tools registered.
+4. Implement or stub `checkGeographicConsistency` based on data findings.
+5. Write unit tests for each.
+6. Run a full end-to-end investigation with all 9 tools registered.
 
 **Owner:** Dev A (merchant, risk events, geography) + Dev B (policy, verification)
 
@@ -579,6 +650,7 @@ message so that `InvestigationService` can parse it directly.
 | `IBM_ACCESS_TOKEN` | IAM bearer token (1h TTL) | *(generated at runtime — never commit)* |
 | `PORT` | NestJS listen port | `3001` |
 | `MAX_INVESTIGATION_ROUNDS` | Max ReAct loop iterations | `8` |
+| `INVESTIGATION_TIMEOUT_MS` | Hard timeout per investigation (aborts the agent) | `30000` |
 | `IBM_CHAT_API_URL` | IBM Chat API endpoint | `https://us-south.ml.cloud.ibm.com/ml/v1/text/chat?version=2024-10-08` |
 | `IBM_MODEL_ID` | Foundation model ID | `ibm/granite-4-h-small` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/fraudlens` |

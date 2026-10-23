@@ -19,6 +19,7 @@ const envSchema = z.object({
 
   // Agent behaviour
   MAX_INVESTIGATION_ROUNDS: z.coerce.number().int().min(1).max(20).default(8),
+  INVESTIGATION_TIMEOUT_MS: z.coerce.number().int().min(1).max(300_000).default(30_000),
 
   // Server
   PORT: z.coerce.number().int().default(3001),

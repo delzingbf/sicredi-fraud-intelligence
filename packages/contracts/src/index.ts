@@ -1,12 +1,19 @@
+// TYPES ONLY. This package is consumed straight from source (package.json
+// "exports" points at src/index.ts) and every import of it is erased at
+// compile time. A runtime value here (export const, enum, class) would make
+// Node try to load a .ts file at runtime and crash the API.
+
 // ─── Investigation Request ────────────────────────────────────────────────────
 
+/**
+ * Input to AgentOrchestrator.investigate().
+ *
+ * Only transactionId is accepted from the HTTP client. The backend resolves
+ * all other transaction fields from DataService (Dev A) so the agent always
+ * works with authoritative data, not client-supplied values.
+ */
 export interface InvestigationRequest {
   transactionId: string;
-  customerId: string;
-  amount: number;
-  /** ISO-8601 timestamp of the transaction */
-  timestamp: string;
-  metadata?: Record<string, unknown>;
 }
 
 // ─── Tool Result Envelope ─────────────────────────────────────────────────────
@@ -71,4 +78,29 @@ export interface InvestigationReport {
   explanation: string;
   requiresHumanReview: boolean;
   confidence: Confidence;
+}
+
+// ─── Investigation Result (POST /investigations response) ────────────────────
+
+export interface InvestigationResult {
+  /** Server-generated UUID. Required by the member-verification endpoints. */
+  investigationId: string;
+  report: InvestigationReport;
+}
+
+// ─── Member Verification (simulated) ─────────────────────────────────────────
+
+export type VerificationStatus = 'PENDING' | 'CONFIRMED' | 'DENIED';
+
+/** The associate's answer to a pending verification request. */
+export type VerificationDecision = Exclude<VerificationStatus, 'PENDING'>;
+
+export interface VerificationRecord {
+  investigationId: string;
+  transactionId: string;
+  status: VerificationStatus;
+  /** ISO-8601 */
+  requestedAt: string;
+  /** ISO-8601 — set once the associate answers */
+  resolvedAt?: string;
 }
