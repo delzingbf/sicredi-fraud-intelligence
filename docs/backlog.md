@@ -112,11 +112,11 @@ Esta issue é um pré-requisito para toda a implementação de ferramentas.
 - [ ] Confirmar nome exato da coluna de fraude (`feedback_label` esperado — verificar)
 - [ ] Avaliar campos geográficos (lat/lon, cidade) — taxa de preenchimento
 - [ ] Avaliar colunas de velocidade pré-computadas vs. computação dinâmica necessária
-- [ ] Decidir estratégia de carregamento: in-memory Map vs. SQLite
+- [ ] Definir schema PostgreSQL: quais colunas vão para quais tabelas, índices necessários
 - [ ] Escrever `docs/data-contract.md` com: lista de campos por ferramenta, campos proibidos, chaves de índice, estratégia escolhida
 
 ### Critérios de aceite
-- `docs/data-contract.md` existe com no mínimo: lista de campos para `getTransactionDetails` e `getCustomerProfile`, nome confirmado da coluna de fraude, lista de campos proibidos, e decisão sobre estratégia de carregamento
+- `docs/data-contract.md` existe com no mínimo: lista de campos para `getTransactionDetails` e `getCustomerProfile`, nome confirmado da coluna de fraude, lista de campos proibidos, e schema PostgreSQL inicial
 - Nenhum código implementado nesta issue — apenas documentação
 - Revisado por pelo menos um outro membro da equipe antes de fechar
 

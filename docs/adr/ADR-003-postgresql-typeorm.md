@@ -48,9 +48,8 @@ Local development uses **Docker Compose** to run the database.
 - An import script (separate from the main app) loads the CSV into PostgreSQL once.
   This script lives in `scripts/import-data.mjs` (or similar) and is documented
   in the README.
-- The data loading strategy (in-memory vs. PostgreSQL) is finalized in **Sub-Task 2**
-  after inspecting the CSV header and the data dictionary. If the dataset turns out
-  to be trivially small after column filtering, the team may revert to SQLite.
+- The PostgreSQL schema (tables, columns, indexes) is finalized in **Sub-Task 2**
+  after inspecting the CSV header and the data dictionary.
 
 ## Development workflow
 

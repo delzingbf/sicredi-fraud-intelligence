@@ -276,7 +276,7 @@ not code.
     orientation file, but verify in the actual CSV header).
   - Assessment of geographic fields (lat/lon, city) — are they populated enough?
   - Assessment of velocity-related pre-computed columns vs. computed-at-query-time.
-  - Chosen data loading strategy: in-memory Map vs. SQLite (decision made here).
+  - PostgreSQL table/index design: which columns need indexes for the tools.
   - Index keys per tool (e.g., transaction_id, customer_id, merchant_id).
 
 **Todo:**
@@ -288,7 +288,7 @@ not code.
 6. Confirm `feedback_label` column name and its values (TRUE/FALSE).
 7. Assess geographic fields: do latitude/longitude or city columns exist with reasonable fill rates?
 8. Assess velocity pre-computed columns (e.g. `cardid_count_1m`) vs. dynamic computation.
-9. Decide loading strategy (in-memory vs. SQLite) based on column count and row count.
+9. Design the PostgreSQL schema: which columns map to which tables, which indexes are needed.
 10. Write `docs/data-contract.md` documenting all findings.
 
 **Relevant Context:**
