@@ -82,11 +82,11 @@ e validação de variáveis de ambiente.
 - [ ] Configurar `@nestjs/config` com validação das variáveis de ambiente obrigatórias
 - [ ] Criar `HealthModule` e `HealthController` com `GET /health` → `{ status: 'ok' }`
 - [ ] Configurar `ValidationPipe` global com `whitelist: true`
-- [ ] Adicionar `pnpm --filter api start:dev` no README
+- [ ] Adicionar `pnpm --filter @fraud-intelligence/api start:dev` no README
 - [ ] Verificar que a aplicação inicia e responde ao health check
 
 ### Critérios de aceite
-- `pnpm --filter api start:dev` inicia sem erro
+- `pnpm --filter @fraud-intelligence/api start:dev` inicia sem erro
 - `curl http://localhost:3001/health` retorna `200 { "status": "ok" }`
 - Aplicação falha com mensagem clara se `IBM_PROJECT_ID` não estiver definido
 - TypeScript compila sem erros
@@ -333,7 +333,7 @@ e visualizar o relatório de investigação.
 - [ ] Conectar ao `POST /investigations`
 
 ### Critérios de aceite
-- `pnpm --filter web dev` inicia sem erro
+- `pnpm --filter @fraud-intelligence/web start:dev` inicia sem erro
 - Usuário pode enviar um transaction ID e ver o relatório completo
 - `ToolTrace` mostra as ferramentas chamadas em ordem
 

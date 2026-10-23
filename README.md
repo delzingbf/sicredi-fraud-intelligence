@@ -47,11 +47,6 @@ selecting tools, gathering evidence, and producing a structured, explainable rep
 
 ## Setup
 
-> **Note:** The workspace is not yet initialized. Sub-Task 1 in
-> [`docs/implementation-plan.md`](docs/implementation-plan.md) creates the
-> `package.json`, `pnpm-workspace.yaml`, and all scaffolding. Once done,
-> the commands below will work.
-
 ```bash
 # 1. Install dependencies
 pnpm install
@@ -63,17 +58,18 @@ cp .env.example .env
 # 3. Start local database
 docker compose up -d db
 
-# 4. Run database migrations
-pnpm --filter api migration:run
+# 4. Run database migrations (once DataService is implemented — Sub-Task 3)
+pnpm --filter @fraud-intelligence/api migration:run
 
-# 5. Import synthetic dataset (once)
+# 5. Import synthetic dataset (once — Sub-Task 3)
 node scripts/import-data.mjs
 
-# 6. Start the backend
-pnpm --filter api start:dev
+# 6. Start everything (api + web in parallel)
+pnpm dev
 
-# 7. Start the frontend (separate terminal)
-pnpm --filter web dev
+# Or start individually:
+pnpm --filter @fraud-intelligence/api start:dev
+pnpm --filter @fraud-intelligence/web start:dev
 ```
 
 Health check: `curl http://localhost:3001/health` → `{ "status": "ok" }`
@@ -108,8 +104,10 @@ Never commit API keys, access tokens, or `.env` files with real values.
 | Component | Status |
 |---|---|
 | IBM integration — tool calling validated | ✅ Done |
-| Monorepo + NestJS scaffold | ⏳ Sub-Task 1 |
-| PostgreSQL + TypeORM + Docker Compose | ⏳ Sub-Task 1 |
+| Monorepo + NestJS scaffold | ✅ Done |
+| React + Vite scaffold | ✅ Done |
+| Docker Compose (PostgreSQL) | ✅ Done |
+| PostgreSQL + TypeORM migrations | ⏳ Sub-Task 3 |
 | Dataset inspection + data contract | ⏳ Sub-Task 2 |
 | DataService + foundational tools | ⏳ Sub-Task 3 |
 | WatsonxClient + AgentOrchestrator | ⏳ Sub-Task 4 |

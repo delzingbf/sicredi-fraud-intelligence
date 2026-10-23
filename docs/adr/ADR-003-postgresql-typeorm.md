@@ -58,11 +58,11 @@ Local development uses **Docker Compose** to run the database.
 docker compose up -d db
 
 # Run migrations
-pnpm --filter api migration:run
+pnpm --filter @fraud-intelligence/api migration:run
 
 # Import the synthetic dataset (once)
 node scripts/import-data.mjs
 
 # Start the API
-pnpm --filter api start:dev
+pnpm --filter @fraud-intelligence/api start:dev
 ```

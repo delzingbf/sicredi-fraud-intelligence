@@ -225,7 +225,7 @@ This is the base that all other sub-tasks build on. No AI, no data, no tools.
 
 **Expected Outcomes:**
 - `pnpm install` succeeds from the root.
-- `pnpm --filter api start:dev` runs the NestJS app.
+- `pnpm --filter @fraud-intelligence/api start:dev` runs the NestJS app.
 - `GET /health` returns `{ status: 'ok' }` with HTTP 200.
 - TypeScript compiles with no errors.
 - `packages/contracts` is importable from `apps/api`.
@@ -243,7 +243,7 @@ This is the base that all other sub-tasks build on. No AI, no data, no tools.
 7. Configure `ConfigModule` with validation for `IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN`.
 8. Create `.env.example` at root documenting `IBM_PROJECT_ID`, `IBM_ACCESS_TOKEN`, `PORT`.
 9. Move `test-tool-calling.mjs` from root to `docs/poc/test-tool-calling.mjs`.
-10. Update root `README.md` with prerequisites and `pnpm install && pnpm --filter api start:dev`.
+10. Update root `README.md` with prerequisites and `pnpm install && pnpm --filter @fraud-intelligence/api start:dev`.
 11. Verify `.gitignore` covers `node_modules/`, `.env`, `dist/`, and the CSV data.
 
 **Relevant Context:**
@@ -502,7 +502,7 @@ investigation report and tool trace. No advanced UI until core flow works.
 **Status:** [ ] pending
 
 **Expected Outcomes:**
-- `pnpm --filter web dev` starts the Vite dev server.
+- `pnpm --filter @fraud-intelligence/web start:dev` starts the Vite dev server.
 - User can enter a transaction ID and trigger an investigation.
 - The investigation report is displayed with all fields clearly readable.
 - The tool execution trace (which tools were called, in order) is displayed.

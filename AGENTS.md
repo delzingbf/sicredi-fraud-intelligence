@@ -184,11 +184,12 @@ pnpm install
 # Start the local database
 docker compose up -d db
 
-# Start the NestJS backend in dev mode
-pnpm --filter api start:dev
+# Start everything (api + web in parallel)
+pnpm dev
 
-# Start the React frontend in dev mode
-pnpm --filter web dev
+# Or individually:
+pnpm --filter @fraud-intelligence/api start:dev
+pnpm --filter @fraud-intelligence/web start:dev
 
 # Health check
 curl http://localhost:3001/health

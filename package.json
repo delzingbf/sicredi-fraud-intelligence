@@ -8,6 +8,7 @@
     "pnpm": ">=8.0.0"
   },
   "scripts": {
+    "dev": "pnpm --parallel --filter @fraud-intelligence/api --filter @fraud-intelligence/web run start:dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
