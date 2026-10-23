@@ -1,6 +1,25 @@
 # FraudLens — Sicredi Fraud Intelligence — Architecture & Implementation Plan
 
-## Status: DRAFT — Pending team review
+
+## Status: SUPERSEDED
+
+> **This document has been superseded.**
+>
+> It is preserved as a historical record of the initial architecture exploration
+> and the reasoning that led to the current decisions.
+>
+> **Do not use this document as implementation guidance.**
+> The authoritative plan is [`docs/implementation-plan.md`](implementation-plan.md).
+>
+> Key decisions that changed since this document was written:
+> - watsonx Orchestrate is **not available** (trial expired) — the direct Chat API
+>   path is now the confirmed approach.
+> - The model confirmed available is `ibm/granite-4-h-small` (not Granite 3.x or
+>   Mistral-Large as originally proposed).
+> - Tools are **not** exposed as REST endpoints — they are executed as local
+>   function calls inside `AgentOrchestrator` in the NestJS process.
+> - PostgreSQL + TypeORM + Docker Compose was chosen as the data layer.
+> - Architecture Decision Records are in [`docs/adr/`](adr/).
 
 ---
 

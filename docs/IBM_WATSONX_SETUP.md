@@ -145,14 +145,25 @@ No **mesmo terminal**, vá até a pasta que contém o script. Substitua o caminh
 ```zsh
 cd /caminho/para/sicredi-fraud-intelligence
 pwd
-ls test-tool-calling.mjs
 ```
+
+O script de PoC estava originalmente na raiz como `test-tool-calling.mjs`.
+Após o Sub-Task 1 do plano de implementação, ele é movido para `docs/poc/test-tool-calling.mjs`.
+Use `ls test-tool-calling.mjs` ou `ls docs/poc/test-tool-calling.mjs` dependendo do estado do repositório.
 
 Antes de rodar, confirme no script que ele lê `process.env.IBM_PROJECT_ID` e `process.env.IBM_ACCESS_TOKEN`, usa o modelo `ibm/granite-4-h-small`, a região `us-south` e não registra credenciais. Caso o script use outros nomes de variáveis, alinhe-os ao contrato deste guia. Um script que exige a API key para autenticação automática tem um fluxo diferente do Bearer token manual aqui descrito.
 
 ```zsh
+# Antes do Sub-Task 1 (script na raiz):
 if [[ -n "$IBM_PROJECT_ID" && -n "$IBM_ACCESS_TOKEN" ]]; then
   node test-tool-calling.mjs
+else
+  printf 'Falta Project ID ou access token. Conclua as etapas 3 e 4.\n'
+fi
+
+# Após o Sub-Task 1 (script em docs/poc/):
+if [[ -n "$IBM_PROJECT_ID" && -n "$IBM_ACCESS_TOKEN" ]]; then
+  node docs/poc/test-tool-calling.mjs
 else
   printf 'Falta Project ID ou access token. Conclua as etapas 3 e 4.\n'
 fi
