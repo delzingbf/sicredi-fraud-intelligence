@@ -22,7 +22,7 @@ Options considered:
 ## Decision
 
 Use **Zod** for validating the `InvestigationReport` output from the agent and
-for the `InvestigationRequest` input DTO in `PolicyService`.
+for the HTTP request DTO through a per-route `ZodValidationPipe`.
 
 ## Rationale
 
@@ -45,4 +45,4 @@ for the `InvestigationRequest` input DTO in `PolicyService`.
 - When `InvestigationReport` types change, the Zod schema in `policy/` must be
   updated in the same commit.
 - `PolicyService.validate(rawJson)` uses `InvestigationReportSchema.safeParse()`
-  and returns the parsed object or throws a `SafeFallbackException`.
+  and returns `{ ok: true, report }` or `{ ok: false, issues }`; validation failures do not throw.

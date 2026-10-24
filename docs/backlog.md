@@ -129,6 +129,8 @@ Esta issue é um pré-requisito para toda a implementação de ferramentas.
 **Dependências:** Issues #2 e #3  
 **Sub-Task do plano:** Sub-Task 4
 
+**Estado em 2026-10-24:** implementação presente; ver notas e limitações no plano. As listas abaixo são o escopo original, não uma confirmação de execução dos testes nesta revisão.
+
 ### Objetivo
 Implementar o cliente HTTP responsável pelas chamadas à IBM Chat API. Esta classe
 não contém lógica de negócio — apenas a comunicação com a API.
@@ -156,6 +158,8 @@ não contém lógica de negócio — apenas a comunicação com a API.
 **Prioridade:** P1 — Alta  
 **Dependências:** Issues #2 e #3  
 **Sub-Task do plano:** Sub-Task 4
+
+**Estado em 2026-10-24:** implementação presente; ver notas e limitações no plano. As listas abaixo são o escopo original, não uma confirmação de execução dos testes nesta revisão.
 
 ### Objetivo
 Implementar o catálogo de ferramentas: definições JSON para o LLM, whitelist,
@@ -185,6 +189,8 @@ o registro antes das ferramentas reais existirem.
 **Dependências:** Issues #5 e #6  
 **Sub-Task do plano:** Sub-Task 4
 
+**Estado em 2026-10-24:** implementação presente; ver notas e limitações no plano. As listas abaixo são o escopo original, não uma confirmação de execução dos testes nesta revisão.
+
 ### Objetivo
 Implementar o loop ReAct em TypeScript — uma migração direta e tipada do
 `test-tool-calling.mjs`, sem redesenhar a lógica.
@@ -213,7 +219,7 @@ Implementar o loop ReAct em TypeScript — uma migração direta e tipada do
 **Sub-Task do plano:** Sub-Task 3
 
 ### Objetivo
-Implementar o `DataService` que carrega e indexa o CSV, e as duas primeiras
+Implementar o `DataService` que consulta PostgreSQL via TypeORM, e as duas primeiras
 ferramentas reais: `getTransactionDetails` e `getCustomerProfile`.
 
 ### Tarefas
@@ -223,13 +229,13 @@ ferramentas reais: `getTransactionDetails` e `getCustomerProfile`.
 - [ ] Implementar `getCustomerProfile` com `ToolResult<CustomerProfile>`
 - [ ] Registrar ambas em `ToolRegistry` com definições JSON ricas
 - [ ] Escrever testes unitários: found, not_found, missing fields
-- [ ] Verificar tempo de startup com o CSV real
+- [ ] Verificar importação separada do CSV e consultas ao PostgreSQL
 
 ### Critérios de aceite
-- `getTransactionDetails('TX-real-id')` retorna dados reais do CSV
+- `getTransactionDetails('TX-real-id')` retorna dados reais importados no PostgreSQL
 - `getTransactionDetails('TX-inexistente')` retorna `status: 'not_found'`
 - `feedback_label` não aparece em nenhuma resposta (verificado por teste)
-- Tempo de startup aceitável para desenvolvimento local
+- Consultas com índices adequados, sem carregar o CSV no startup
 
 ---
 
@@ -240,13 +246,15 @@ ferramentas reais: `getTransactionDetails` e `getCustomerProfile`.
 **Dependências:** Issues #2, #3, #7 (AgentOrchestrator precisa existir)  
 **Sub-Task do plano:** Sub-Task 5
 
+**Estado em 2026-10-24:** implementação presente; ver notas e limitações no plano. As listas abaixo são o escopo original, não uma confirmação de execução dos testes nesta revisão.
+
 ### Objetivo
 Implementar a camada de segurança determinística (PolicyService) e o serviço de
 caso de uso (InvestigationService) que integra o orquestrador com as políticas.
 
 ### Tarefas
 - [ ] Implementar schema Zod para `InvestigationReport`
-- [ ] Implementar `PolicyService.validate(report)` — retorna relatório validado ou lança exceção
+- [ ] Implementar `PolicyService.validate(report)` — retorna { ok: true, report } ou { ok: false, issues }
 - [ ] Implementar `PolicyService.canRequestMemberVerification(report)` — regra determinística
 - [ ] Implementar `InvestigationService.investigate(request)` — chama orchestrator, faz parse do JSON, valida, retorna
 - [ ] Adicionar fallback: se o modelo não retornar JSON válido → retornar `INCONCLUSIVE + requiresHumanReview: true`
@@ -388,3 +396,15 @@ Após #9 + #10:
 Após tudo funcionando e2e:
   #13 (Dev C + Dev D)
 ```
+
+
+## Estado e integração atual (2026-10-24)
+
+- Issues #1–#3: base e contratos implementados; Docker Compose e scaffold web também existem. TypeORM e migrations ainda faltam.
+- Issues #5–#7: código do agente e testes presentes. Integração real com IBM usa três ferramentas mockadas, incluindo `getTransactionDetails`.
+- Issue #9: API, políticas, fallback, timeout e verificação simulada implementados. Integração com ferramentas e dados reais continua pendente.
+- Issues #4, #8, #10 e parte de #11: contrato de dados, PostgreSQL/TypeORM e ferramentas reais pendentes.
+- Issue #12: scaffold pronto, interface de investigação pendente. Issue #13: avaliação pendente.
+- Contrato B/C vigente: `investigate(request: { transactionId: string }, signal: AbortSignal): Promise<{ finalText: string; toolsExecuted: string[] }>`.
+- A resposta HTTP é `{ investigationId, report }`. A verificação é uma ação posterior da API, não uma ferramenta livre do modelo.
+- As listas originais acima não equivalem ao estado das issues no GitHub. Não foi consultado o rastreador remoto nem reexecutada a suíte nesta auditoria.
