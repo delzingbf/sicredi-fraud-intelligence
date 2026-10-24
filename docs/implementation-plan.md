@@ -373,7 +373,7 @@ tools that all other analyses depend on. Use only pre-authorization columns.
 ReAct loop. This is a direct TypeScript port of the validated PoC logic, not a
 redesign.
 
-**Status:** [ ] pending
+**Status:** [x] done — 2026-10-23
 
 **Expected Outcomes:**
 - `WatsonxClient` calls the IBM Chat API with the correct auth headers, model_id,
