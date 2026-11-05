@@ -307,7 +307,7 @@ pre-authorization, what the fraud label column is named, and whether geographic
 and velocity fields are usable. The result is a written data contract document —
 not code.
 
-**Status:** [ ] pending
+**Status:** [x] done — 2026-11-04
 
 **Expected Outcomes:**
 - `docs/data-contract.md` created with:
@@ -321,24 +321,16 @@ not code.
   - PostgreSQL table/index design: which columns need indexes for the tools.
   - Index keys per tool (e.g., transaction_id, customer_id, merchant_id).
 
-**Todo:**
-1. Read the CSV header row (first line only — no need to load all 900k rows).
-2. Read `data/dicionario_dados_case_prevencao_sicredi.xlsx` using Bob's office_read tool.
-3. Read `data/Orientacoes_case_prevencao_sicredi.txt` for context.
-4. Identify which columns are needed for each of the 10 planned tools.
-5. Identify post-authorization columns that must NEVER appear in tool responses.
-6. Confirm `feedback_label` column name and its values (TRUE/FALSE).
-7. Assess geographic fields: do latitude/longitude or city columns exist with reasonable fill rates?
-8. Assess velocity pre-computed columns (e.g. `cardid_count_1m`) vs. dynamic computation.
-9. Design the PostgreSQL schema: which columns map to which tables, which indexes are needed.
-10. Write `docs/data-contract.md` documenting all findings.
+**Confirmed data decisions (from inspection of real CSV):**
 
-**Relevant Context:**
-- Orientation file mentions `feedback_label` as the target column.
-- 297 columns — many may be post-authorization or too sparse to use.
-- 900k rows × 297 columns — loading all as JS objects may be ~500MB+; evaluate carefully.
-- The PoC used `customer_id` and `transaction_id` as lookup keys — confirm these exist.
-- `feedback_label` must never be included in any `ToolResult` response.
+| Decision | Result |
+|---|---|
+| Transaction ID key | `event_external_id` (format: `EVT_SYN_XXXXXXXXX`) |
+| Customer data layout | Snapshot per transaction — varies per row — **no separate `customers` table** |
+| `amount` type | Decimal with dot (e.g. `6.67`) → `NUMERIC(14,2)` |
+| Geographic fill rate | `acceptor_latitude` ~23.9%, `terminal_latitude` ~23.9% (< 30% threshold) |
+| `checkGeographicConsistency` | **Stub** — returns `status: 'unavailable'` |
+| `feedback_label` | Never imported to DB; used only in `scripts/evaluate.mjs` |
 
 **Owner:** Dev A (primary) with all devs reviewing the output doc before proceeding to Sub-Task 3.
 
@@ -350,32 +342,34 @@ not code.
 implement `getTransactionDetails` and `getCustomerProfile` as the two foundational
 tools that all other analyses depend on. Use only pre-authorization columns.
 
-**Status:** [ ] pending
+**Status:** [x] done — 2026-11-05
 
-**Expected Outcomes:**
-- A separate import script loads approved CSV fields into PostgreSQL after explicit migrations.
-- `DataService` queries TypeORM repositories; it does not load the CSV at app startup.
-- `DataService` exposes typed query methods: `getTransaction(id)`, `getCustomer(id)`.
-- `feedback_label` is excluded from all returned data — enforced by a field allowlist.
-- `getTransactionDetails` returns a `ToolResult<TransactionDetails>` with the standard envelope.
-- `getCustomerProfile` returns a `ToolResult<CustomerProfile>`.
-- Both tools handle `not_found` and `unavailable` status correctly.
-- Unit tests cover: found case, not-found case, missing field reporting.
+**Delivered:**
+- `apps/api/src/data/transaction.entity.ts` — TypeORM entity, all 45 columns, `feedback_label` structurally absent
+- `apps/api/src/migrations/1746000000000-CreateTransactions.ts` — CREATE TABLE + 4 indexes
+- `apps/api/src/data-source.ts` — standalone DataSource for TypeORM CLI
+- `apps/api/src/data/data.service.ts` — `getTransactionById()`, `getLatestCustomerSnapshot()`
+- `apps/api/src/data/data.module.ts` — TypeOrmModule.forRootAsync, exports DataService
+- `apps/api/src/tools/get-transaction-details.tool.ts` — OnModuleInit self-registration, replaces mock
+- `apps/api/src/tools/get-customer-profile.tool.ts` — OnModuleInit self-registration, replaces mock
+- `apps/api/src/tools/tools.module.ts` — ToolsModule imported by AppModule
+- `scripts/import-csv.mjs` — streaming COPY via pg-copy-streams, idempotent, 158,701 rows loaded
+- Unit tests: `data.service.spec.ts`, `get-transaction-details.tool.spec.ts`, `get-customer-profile.tool.spec.ts`
+- `packages/contracts/src/index.ts` — added `TransactionDetails` and `CustomerProfile` interfaces
 
-**Todo:**
-1. Implement `DataService` based on the strategy from `docs/data-contract.md`.
-2. Apply the pre-authorization field allowlist — never expose `feedback_label`.
-3. Implement `get-transaction-details.tool.ts` using `DataService`.
-4. Implement `get-customer-profile.tool.ts` using `DataService`.
-5. Register both tools in `ToolRegistry` with their JSON definitions (for the LLM) and implementations.
-6. Write unit tests for `DataService` and both tools.
-7. Verify that the tool JSON definitions include a rich `description` — this is what the LLM reads to decide when to call the tool.
+**Schema corrections discovered during import (CSV inspection):**
+- `acceptor_risky_flag`: declared BOOLEAN in plan, actual CSV values are NUMERIC (e.g. `27.76`) → changed to `NUMERIC(6,2)`
+- `customer_risk_rating`: declared NUMERIC in plan, actual CSV values are categorical (`baixo`/`medio`/`alto`) → changed to `VARCHAR(20)`
+- `card_presence_flag`: CSV values are `Y`/`N`, not `true`/`false` → normalised in import script
+- `malware_flag`: CSV values are `True`/`False` strings → normalised in import script
+- Some rows have `event_occurred_at = 'None'` or `customer_id = 'None'` → skipped (~1,299 of 160,000 rows)
+- CSV column `event_external_id` maps to DB column `id` → handled via `CSV_COLUMN_ALIAS` in import script
+- Dataset file labelled "900k" contains 160,000 rows (truncated distribution)
 
-**Relevant Context:**
-- See `docs/data-contract.md` for confirmed column names (created in Sub-Task 2).
-- `ToolResult<T>` type is in `packages/contracts`.
-- Tool JSON definition format mirrors the PoC's `tools` array in `test-tool-calling.mjs`.
-- `getCustomerProfile` was already validated in the PoC — use the same tool name and parameter schema.
+**End-to-end validation (2026-11-05):**
+- `POST /investigations` with `EVT_SYN_000000001` returned `HIGH_RISK` / `MANUAL_REVIEW`
+- Tools executed: `getTransactionDetails`, `getCustomerProfile`, `analyzeTransactionVelocity` (mock)
+- IBM Granite correctly identified CNP transaction + velocity anomaly
 
 **Owner:** Dev A
 

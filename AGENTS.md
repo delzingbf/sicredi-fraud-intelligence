@@ -98,7 +98,7 @@ Do not move responsibilities between owners without team coordination.
 6. `checkMerchantHistory` — P2
 7. `checkCustomerRiskEvents` — P2
 8. `getRiskPolicy` — static config response
-9. `checkGeographicConsistency` — implement only if geographic data is confirmed usable
+9. `checkGeographicConsistency` — **stub** (`status: 'unavailable'`): geographic fill rate ~23.9% < 30% threshold (confirmed Sub-Task 2)
 10. `requestMemberVerification` — **not a tool**: the agent only recommends it; the API
     endpoint `POST /investigations/:id/member-verification` runs it, gated by `PolicyService`
     on the server-stored report
@@ -164,39 +164,55 @@ For credential setup, see `docs/IBM_WATSONX_SETUP.md`.
 
 ---
 
-## What does NOT exist yet (as of 2026-10-22)
+## What does NOT exist yet (as of 2026-11-05)
 
-- NestJS application code (`apps/api/` has only `.gitkeep`)
 - React application code (`apps/web/` has only `.gitkeep`)
-- `package.json` at root (no pnpm workspace configured yet)
-- `packages/contracts/`
-- Docker Compose file
-- TypeORM migrations
-- Any real tool implementations
+- Analytical tools: `analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext` — Sub-Task 6
+- Remaining tools: `checkMerchantHistory`, `checkCustomerRiskEvents`, `getRiskPolicy` — Sub-Task 7
 
-The first implementation task is **Sub-Task 1** in `docs/implementation-plan.md`.
+**Completed sub-tasks:** Sub-Task 1 (monorepo scaffold), Sub-Task 2 (data contract),
+Sub-Task 3 (DataService + foundational tools + CSV import — 158,701 rows loaded),
+Sub-Task 4 (WatsonxClient + AgentOrchestrator), Sub-Task 5 (PolicyService + InvestigationService).
+See `docs/implementation-plan.md` for full status.
 
 ---
 
-## How to run (once Sub-Task 1 is complete)
+## How to run
 
 ```bash
-# Install all workspace dependencies
+# 1. Install all workspace dependencies
 pnpm install
 
-# Start the local database
+# 2. Start the local database
 docker compose up -d db
 
-# Start everything (api + web in parallel)
+# 3. Build the API (needed for migration CLI)
+pnpm --filter @fraud-intelligence/api build
+
+# 4. Apply database migration (first time only)
+pnpm --filter @fraud-intelligence/api migration:run
+
+# 5. Import CSV dataset (first time only — ~160k rows)
+node scripts/import-csv.mjs
+
+# 6. Start everything (api + web in parallel)
 pnpm dev
 
 # Or individually:
 pnpm --filter @fraud-intelligence/api start:dev
 pnpm --filter @fraud-intelligence/web start:dev
 
-# Health check
-curl http://localhost:3001/health
+# Health check (PowerShell)
+Invoke-RestMethod http://localhost:3001/health
+
+# Smoke test — real fraud investigation (PowerShell)
+Invoke-RestMethod -Method POST -Uri "http://localhost:3001/investigations" `
+  -ContentType "application/json" `
+  -Body '{"transactionId": "EVT_SYN_000000001"}'
 ```
+
+> **Windows note:** `apps/api/.env` must exist (not just the root `.env`).
+> See README.md for the PowerShell token generation script.
 
 ---
 

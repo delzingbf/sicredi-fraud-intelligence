@@ -88,6 +88,48 @@ export interface InvestigationResult {
   report: InvestigationReport;
 }
 
+// ─── Tool-specific data types ─────────────────────────────────────────────────
+
+/** Data returned by the `getTransactionDetails` tool. */
+export interface TransactionDetails {
+  transactionId: string;
+  customerId: string;
+  amount: number | null;
+  /** ISO-8601 timestamp */
+  timestamp: string;
+  /** debito | credito */
+  type: string | null;
+  modality: string | null;
+  channel: string | null;
+  cardPresent: boolean | null;
+  merchantId: string | null;
+  merchantName: string | null;
+  merchantCity: string | null;
+  merchantRegion: string | null;
+  mcc: string | null;
+  cardId: string | null;
+}
+
+/** Data returned by the `getCustomerProfile` tool. */
+export interface CustomerProfile {
+  customerId: string;
+  name: string | null;
+  segment: string | null;
+  /** Categorical risk rating: 'baixo' | 'medio' | 'alto' */
+  riskRating: string | null;
+  city: string | null;
+  region: string | null;
+  registrationDate: string | null;
+  totalCreditLimit: number | null;
+  totalBalance: number | null;
+  presumedIncome: number | null;
+  onboardingScore: number | null;
+  kycLevel: string | null;
+  numberOfCards: string | null;
+  emailChangeFlag: boolean | null;
+  phoneChangeFlag: boolean | null;
+}
+
 // ─── Member Verification (simulated) ─────────────────────────────────────────
 
 export type VerificationStatus = 'PENDING' | 'CONFIRMED' | 'DENIED';

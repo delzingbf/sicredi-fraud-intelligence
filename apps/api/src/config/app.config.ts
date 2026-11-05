@@ -25,7 +25,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().default(3001),
 
   // Database
-  DATABASE_URL: z.string().optional(),
+  DATABASE_URL: z.string().url().default('postgresql://fraudlens:fraudlens@localhost:5432/fraudlens'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

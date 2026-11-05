@@ -18,6 +18,10 @@
     "db:logs": "docker compose logs -f db"
   },
   "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "@types/pg-copy-streams": "^1.2.4",
+    "pg": "^8.13.1",
+    "pg-copy-streams": "^6.0.6",
     "typescript": "^5.4.5"
   }
 }
