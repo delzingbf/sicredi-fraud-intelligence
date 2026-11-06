@@ -201,20 +201,22 @@ export function ReportDisplay({
             <span className="report-meta-label">Investigation ID</span>
             <code>{investigationId}</code>
           </span>
-          <button
-            type="button"
-            className="btn btn--download"
-            onClick={() => downloadReport(report, investigationId)}
-            title="Download report as .txt"
-            aria-label="Download report as .txt"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 2v8M4.5 6.5l3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 13h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          </button>
         </div>
       </div>
+
+      {/* Download button — top-right corner of the card */}
+      <button
+        type="button"
+        className="btn btn--download"
+        onClick={() => downloadReport(report, investigationId)}
+        title="Download report as .txt"
+        aria-label="Download report as .txt"
+      >
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M11 3v11M6.5 9.5l4.5 4.5 4.5-4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </button>
 
       {/* Colour legend */}
       <div className="risk-legend" aria-label="Risk level colour guide">
