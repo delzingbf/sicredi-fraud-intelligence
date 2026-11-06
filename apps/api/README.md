@@ -7,12 +7,18 @@ NestJS backend for the Sicredi Fraud Intelligence MVP.
 ```bash
 # From the repository root
 pnpm install
-cp .env.example .env   # fill in IBM credentials — see docs/IBM_WATSONX_SETUP.md
+cp -n .env.example apps/api/.env   # fill in IBM credentials
 docker compose up -d db
+# Wait for db to become healthy (docker compose ps).
+pnpm --filter @fraud-intelligence/api build
+pnpm --filter @fraud-intelligence/api migration:run
+node scripts/import-csv.mjs   # first setup, once the CSV is in data/
 pnpm --filter @fraud-intelligence/api start:dev
 ```
 
 Health check: `curl http://localhost:3001/health`
+
+See the [root setup](../../README.md#first-time-setup-run-once) and [IBM credential guide](../../docs/IBM_WATSONX_SETUP.md). The API uses PostgreSQL for transaction details and customer profile. The velocity tool still returns mock data.
 
 ## Scripts
 
@@ -22,8 +28,10 @@ Health check: `curl http://localhost:3001/health`
 | `start:prod` | Start compiled build |
 | `build` | Compile TypeScript |
 | `test` | Run unit tests (vitest) |
-| `test:e2e` | Run e2e tests |
+| `test:e2e` | Run the endpoint integration tests; requires local PostgreSQL for app startup |
 | `lint` | Run oxlint |
+
+The existing e2e wiring test still expects the previous mock orchestrator response. Update that test to use a controlled model response before treating the suite as a release check.
 
 ## Module structure
 

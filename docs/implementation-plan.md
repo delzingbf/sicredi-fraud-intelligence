@@ -2,7 +2,7 @@
 
 **Project:** Sicredi Fraud Intelligence — Hello Moto team
 **Status:** ACTIVE
-**Last updated:** 2026-10-24
+**Last updated:** 2026-11-06
 
 ---
 
@@ -26,14 +26,14 @@ original architecture record (`docs/fraud-intelligence-architecture-plan.md`).
 | `POST /investigations` controller + DTO | ✅ DONE — Sub-Task 5 |
 | `IAgentOrchestrator` interface + `AgentError` | ✅ DONE — Sub-Task 5 |
 | Global exception filter | ✅ DONE — Sub-Task 5 |
-| PostgreSQL Docker Compose + db scripts | ✅ IMPLEMENTED — runtime not rechecked in this audit |
-| TypeORM integration + migrations | ⏳ PENDING — database implementation |
-| DataService / CSV import / migrations | ⏳ PENDING — Sub-Tasks 2–3 |
-| `WatsonxClient` + `ToolRegistry` + `AgentOrchestrator` | ✅ IMPLEMENTED — real IBM with three mock tools |
+| PostgreSQL Docker Compose + db scripts | ✅ IMPLEMENTED |
+| TypeORM integration + migrations | ✅ IMPLEMENTED — Sub-Task 3 |
+| DataService / CSV import / migrations | ✅ IMPLEMENTED — Sub-Tasks 2–3 |
+| `WatsonxClient` + `ToolRegistry` + `AgentOrchestrator` | ✅ IMPLEMENTED — real IBM; two PostgreSQL tools and mock velocity |
 | Analytical tools (velocity, spending, context) | ⏳ PENDING — Sub-Task 6 |
 | Remaining data tools | ⏳ PENDING — Sub-Task 7 |
 | Simulated member verification + policy gate | ✅ IMPLEMENTED — post-investigation endpoints |
-| React/Vite scaffold | ✅ IMPLEMENTED — investigation UI pending (Sub-Task 8) |
+| React investigation UI | Integrated in development; production build fix pending (Sub-Task 8) |
 | Evaluation harness | ⏳ PENDING — Sub-Task 9 |
 
 ### Confirmed decisions
@@ -101,6 +101,7 @@ sicredi-fraud-intelligence/
 │   ├── IBM_WATSONX_SETUP.md
 │   ├── implementation-plan.md       ← this file (authoritative)
 │   ├── backlog.md
+│   ├── data-contract.md             ← ⏳ PENDING — Sub-Task 2 output (not yet committed)
 │   └── poc/
 │       └── test-tool-calling.mjs
 ├── packages/
@@ -119,12 +120,14 @@ sicredi-fraud-intelligence/
 
 ## NestJS Module Architecture (`apps/api/src/`)
 
-Current layout (2026-10-24 — reflects what is present; `data/` and `tools/` are pending Sub-Tasks 2–3, 6–7):
+Current backend layout (2026-11-06):
 
 ```
 src/
 ├── main.ts
 ├── app.module.ts
+├── data-source.ts                  ← migration CLI configuration
+├── migrations/                     ← explicit schema migrations
 ├── configure-app.ts              ← shared app setup (main.ts + e2e tests)
 ├── health/
 │   ├── health.controller.ts
@@ -141,7 +144,7 @@ src/
 │       ├── create-investigation.schema.ts   ← Zod request schema (not class-validator DTO)
 │       └── verification.schema.ts
 ├── agent/
-│   ├── agent.module.ts               ← wires real AgentOrchestrator + 3 mock tools
+│   ├── agent.module.ts               ← wires real AgentOrchestrator + initial mock registrations
 │   ├── agent.orchestrator.interface.ts
 │   ├── agent.orchestrator.ts         ← ReAct loop + JSON correction retry
 │   ├── agent.orchestrator.spec.ts
@@ -163,12 +166,14 @@ src/
 │       └── format-zod-issues.ts
 ├── config/
 │   └── app.config.ts                 ← Zod env validation
-├── data/                             ← ⏳ PENDING (Sub-Tasks 2–3)
+├── data/                             ← PostgreSQL repositories
 │   ├── data.module.ts
-│   └── data.service.ts
-└── tools/                            ← ⏳ PENDING (Sub-Tasks 3, 6–7)
+│   ├── data.service.ts
+│   └── transaction.entity.ts
+└── tools/                            ← two PostgreSQL tools; analytics pending
     ├── tools.module.ts
-    └── <one file per tool>
+    ├── get-transaction-details.tool.ts
+    └── get-customer-profile.tool.ts
 ```
 
 ### Service boundaries
@@ -414,7 +419,7 @@ redesign.
 - Credentials: `IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN` env vars.
 
 **Current implementation notes (2026-10-24):**
-- `AgentModule` registers `getTransactionDetails`, `getCustomerProfile` and `analyzeTransactionVelocity` with fixed mock data. Real data tools remain pending.
+- `AgentModule` initially registers three mocks. At application startup, `ToolsModule` replaces transaction details and customer profile with PostgreSQL implementations. Velocity still returns fixed mock data.
 - The orchestrator attempts one JSON syntax correction without tools, within the round budget and timeout. Zod and semantic validation remain in `PolicyService`.
 - `ToolRegistry` enforces registered names and parses arguments into objects (including double-encoded JSON). Per-tool schema/type validation is not yet centralized; implementations currently check required identifiers.
 - IBM errors, including HTTP 401, currently map to generic `IBM_ERROR`; the API does not specifically identify expired tokens.
@@ -440,7 +445,7 @@ the orchestrator with the policy layer as a single use-case entry point.
 | `apps/api/src/policy/policy.service.ts` | `validate(raw)` → `ValidationResult` (never throws) + `canRequestMemberVerification(report)` |
 | `apps/api/src/policy/policy.module.ts` | NestJS module exporting `PolicyService` |
 | `apps/api/src/agent/agent.orchestrator.interface.ts` | `IAgentOrchestrator`, `AgentResult`, `AGENT_ORCHESTRATOR` token, `AgentError` / `AgentErrorCode` |
-| `apps/api/src/agent/agent.module.ts` | Provides the real `AgentOrchestrator`, IBM client and three mock data tools |
+| `apps/api/src/agent/agent.module.ts` | Provides the real `AgentOrchestrator`, IBM client and initial mock registrations (two replaced by `ToolsModule`) |
 | `apps/api/src/investigation/investigation.service.ts` | Use case: agent (timeout + `AbortSignal`) → parse → validate → `transactionId` check → authoritative `toolsExecuted` → store; `INCONCLUSIVE` fallback on any failure |
 | `apps/api/src/investigation/investigation.store.ts` | In-memory, bounded (1 000) store of reports + verification state, keyed by `investigationId` |
 | `apps/api/src/investigation/verification.service.ts` | Simulated member verification: `PENDING` → `CONFIRMED`/`DENIED`, gate evaluated on the stored report |
@@ -585,25 +590,12 @@ core fraud signals. These depend on `DataService` (Sub-Task 3) being complete.
 **Intent:** Build the minimal web interface: submit a transaction ID, display the
 investigation report and tool trace. No advanced UI until core flow works.
 
-**Status:** [ ] pending
+**Status:** Integrated in development — production build fix pending.
 
-**Expected Outcomes:**
-- `pnpm --filter @fraud-intelligence/web start:dev` starts the Vite dev server.
-- User can enter a transaction ID and trigger an investigation.
-- The investigation report is displayed with all fields clearly readable.
-- The tool execution trace (which tools were called, in order) is displayed.
-- `requestMemberVerification` shows a confirmation dialog (simulated — no real action).
-- `packages/contracts` types are imported directly in the frontend.
-
-**Todo:**
-1. Initialize `apps/web/` with Vite + React + TypeScript.
-2. Add `packages/contracts` as workspace dependency.
-3. Implement `InvestigationForm` component.
-4. Implement `InvestigationReport` display component.
-5. Implement `ToolTrace` component showing tool calls in order.
-6. Implement `MemberVerificationDialog` (simulated confirmation).
-7. Wire API calls to `POST /investigations`.
-8. Add basic error handling for API failures.
+- The React UI submits `POST /investigations` and shows the report and tool trace using shared workspace types.
+- Text export, basic API error handling and the simulated member verification dialog are implemented.
+- Vite proxies API routes to port 3001 during development.
+- The production build currently fails with `TS1294` in the `ApiError` constructor. Fix it and rerun the build before marking this task complete.
 
 **Owner:** Dev D
 
@@ -696,43 +688,24 @@ message so that `InvestigationService` can parse it directly.
 | `docs/backlog.md` | GitHub issue proposals for all sub-tasks |
 | `docs/adr/` | Architecture Decision Records (ADR-001–005) with rationale |
 | `docs/poc/test-tool-calling.mjs` | Validated PoC — reference for AgentOrchestrator implementation |
-| `docs/fraud-intelligence-architecture-plan.md` | Original architecture record (historical) |
+| `docs/data-contract.md` | Dataset column mapping, pre-auth field list, excluded fields *(pending commit)* |
 
 
-## Running the current mock-data investigation (2026-10-24)
+## Running the integrated investigation
 
-The backend calls real IBM Granite; only the three data tools are mocked. A valid
-`IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN` must be available to the API process.
-`ConfigModule` currently uses its default `.env` lookup relative to the API working
-directory (`apps/api` when launched with the workspace filter); root `.env` loading
-is not explicitly configured. Exported shell variables are also supported.
-Never commit credentials. Token renewal is manual; HTTP 401 currently becomes a
-generic IBM API error in the client-facing fallback.
-
-```bash
-pnpm dev
-```
-
-In a second terminal:
+Follow the [root setup](../README.md#first-time-setup-run-once) to configure
+`apps/api/.env`, start PostgreSQL, run migrations and import the team CSV.
+Then run `pnpm dev` and investigate `EVT_SYN_000000001` in the web UI or via:
 
 ```bash
 curl -sS http://localhost:3001/investigations \
   -H 'Content-Type: application/json' \
-  -d '{"transactionId":"TX-1001"}' | jq .
+  -d '{"transactionId":"EVT_SYN_000000001"}'
 ```
 
-`jq` is optional and only formats the response. The response is
-`{ investigationId, report }`. The mock transaction resolves to `CUST-42`;
-`toolsExecuted` lists dispatched tool names. Risk conclusions apply only to the
-fixed mock scenario. The frontend is still the Vite starter, not an investigation UI.
-PostgreSQL is not used by these mock tools.
-
-Local verification commands (no live IBM call required):
-
-```bash
-pnpm run build
-pnpm --filter @fraud-intelligence/api run test
-pnpm --filter @fraud-intelligence/api run test:e2e
-```
-
-These commands are instructions, not a claim that tests passed in this documentation audit.
+The API returns `{ investigationId, report }`. The model call uses real IBM
+credentials. Transaction details and customer profile use PostgreSQL, but the
+velocity result is simulated. The profile uses the latest customer snapshot;
+a time cutoff at the investigated transaction is still pending. A successful
+request demonstrates integration, not detection quality. For a standalone
+mock-data IBM test, see the [original PoC](poc/test-tool-calling.mjs).

@@ -46,7 +46,7 @@ Local development uses **Docker Compose** to run the database.
 - `DataService` queries TypeORM repositories — it does not read the CSV directly
   at runtime after the import step.
 - An import script (separate from the main app) loads the CSV into PostgreSQL once.
-  This script lives in `scripts/import-data.mjs` (or similar) and is documented
+  This script lives in `scripts/import-csv.mjs` and is documented
   in the README.
 - The PostgreSQL schema (tables, columns, indexes) is finalized in **Sub-Task 2**
   after inspecting the CSV header and the data dictionary.
@@ -58,10 +58,11 @@ Local development uses **Docker Compose** to run the database.
 docker compose up -d db
 
 # Run migrations
+pnpm --filter @fraud-intelligence/api build
 pnpm --filter @fraud-intelligence/api migration:run
 
 # Import the synthetic dataset (once)
-node scripts/import-data.mjs
+node scripts/import-csv.mjs
 
 # Start the API
 pnpm --filter @fraud-intelligence/api start:dev

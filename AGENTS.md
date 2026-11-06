@@ -164,9 +164,12 @@ For credential setup, see `docs/IBM_WATSONX_SETUP.md`.
 
 ---
 
-## What does NOT exist yet (as of 2026-11-05)
+## Current status (2026-11-06)
 
-- React application code (`apps/web/` has only `.gitkeep`)
+- The React investigation UI is integrated in development (Sub-Task 8); the production build fix remains pending.
+- Transaction details and customer profile query PostgreSQL. Velocity still returns fixed mock evidence; do not treat it as dataset evidence.
+
+Pending:
 - Analytical tools: `analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext` — Sub-Task 6
 - Remaining tools: `checkMerchantHistory`, `checkCustomerRiskEvents`, `getRiskPolicy` — Sub-Task 7
 
@@ -211,8 +214,8 @@ Invoke-RestMethod -Method POST -Uri "http://localhost:3001/investigations" `
   -Body '{"transactionId": "EVT_SYN_000000001"}'
 ```
 
-> **Windows note:** `apps/api/.env` must exist (not just the root `.env`).
-> See README.md for the PowerShell token generation script.
+> Set IBM credentials in `apps/api/.env` or export them before starting the API.
+> See `docs/IBM_WATSONX_SETUP.md` for token generation.
 
 ---
 
@@ -223,10 +226,10 @@ They exist only on each developer's local machine.
 
 | File | Contents |
 |---|---|
-| `data/case_transacoes_cartoes_sintetico_900k.csv` | 900k synthetic transactions, 297 columns |
+| `data/case_transacoes_cartoes_sintetico_900k.csv` | Synthetic transactions, 297 columns; the documented distribution has 160,000 rows |
 | `data/dicionario_dados_case_prevencao_sicredi.xlsx` | Data dictionary |
 | `data/Orientacoes_case_prevencao_sicredi.txt` | Challenge orientation notes |
 
 The column `feedback_label` (TRUE/FALSE) is the fraud ground-truth label.
 It must never be sent to the agent or appear in any tool response.
-It is used only in the offline evaluation harness (`scripts/evaluate.mjs`).
+It is reserved for the planned offline evaluation harness (`scripts/evaluate.mjs`).
