@@ -231,9 +231,6 @@ export function ReportDisplay({
           {ACTION_LABELS[report.recommendedAction]}
           <span className="action-description"> — {ACTION_DESCRIPTIONS[report.recommendedAction]}</span>
         </span>
-        {report.requiresHumanReview && (
-          <span className="human-review-flag"> · Human review required</span>
-        )}
       </div>
 
       {/* Explanation */}
