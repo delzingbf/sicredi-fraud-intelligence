@@ -1,5 +1,78 @@
 import type { InvestigationReport, RiskLevel, RecommendedAction } from '@fraud-intelligence/contracts';
 
+/** Generates a plain-text report and triggers a browser download. */
+function downloadReport(report: InvestigationReport, investigationId: string) {
+  const lines: string[] = [];
+  const divider = '='.repeat(60);
+  const thin    = '-'.repeat(60);
+
+  const section = (title: string, items: string[]) => {
+    lines.push('');
+    lines.push(title.toUpperCase());
+    lines.push(thin);
+    if (items.length === 0) {
+      lines.push('  (none)');
+    } else {
+      items.forEach((item) => lines.push(`  • ${item}`));
+    }
+  };
+
+  lines.push('FRAUDLENS — INVESTIGATION REPORT');
+  lines.push(divider);
+  lines.push(`Generated at    : ${new Date().toISOString()}`);
+  lines.push(`Investigation ID: ${investigationId}`);
+  lines.push(`Transaction ID  : ${report.transactionId}`);
+  lines.push(`Schema version  : ${report.schemaVersion}`);
+  lines.push(divider);
+  lines.push('');
+  lines.push('ASSESSMENT');
+  lines.push(thin);
+  lines.push(`Risk Level       : ${report.riskLevel}`);
+  lines.push(`Recommended Action: ${report.recommendedAction}`);
+  lines.push(`Confidence       : ${report.confidence}`);
+  lines.push(`Requires Human Review: ${report.requiresHumanReview ? 'Yes' : 'No'}`);
+
+  lines.push('');
+  lines.push('EXPLANATION');
+  lines.push(thin);
+  // Wrap long explanation lines at ~80 chars
+  const words = report.explanation.split(' ');
+  let line = '';
+  for (const word of words) {
+    if ((line + ' ' + word).trim().length > 78) {
+      lines.push(line.trim());
+      line = word;
+    } else {
+      line = line ? line + ' ' + word : word;
+    }
+  }
+  if (line) lines.push(line.trim());
+
+  section('Evidence For Risk', report.evidenceFor);
+  section('Evidence Against Risk', report.evidenceAgainst);
+  if (report.missingInformation.length > 0)
+    section('Missing Information', report.missingInformation);
+  if (report.contradictions.length > 0)
+    section('Contradictions', report.contradictions);
+
+  lines.push('');
+  lines.push('TOOLS EXECUTED');
+  lines.push(thin);
+  report.toolsExecuted.forEach((t, i) => lines.push(`  ${i + 1}. ${t}`));
+
+  lines.push('');
+  lines.push(divider);
+  lines.push('IBM AI Experiential Learning Lab 2026 — Sicredi track / Hello Moto');
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `fraudlens-${report.transactionId}-${investigationId.slice(0, 8)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 interface Props {
   report: InvestigationReport;
   investigationId: string;
@@ -128,6 +201,18 @@ export function ReportDisplay({
             <span className="report-meta-label">Investigation ID</span>
             <code>{investigationId}</code>
           </span>
+          <button
+            type="button"
+            className="btn btn--download"
+            onClick={() => downloadReport(report, investigationId)}
+            title="Download report as .txt"
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M6.5 1v7M3.5 5.5l3 3 3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M1.5 10.5h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            Download .txt
+          </button>
         </div>
       </div>
 
