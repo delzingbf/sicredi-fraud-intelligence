@@ -202,21 +202,20 @@ export function ReportDisplay({
             <code>{investigationId}</code>
           </span>
         </div>
+        {/* Download button — right edge of header, vertically centred */}
+        <button
+          type="button"
+          className="btn btn--download"
+          onClick={() => downloadReport(report, investigationId)}
+          title="Download report as .txt"
+          aria-label="Download report as .txt"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path d="M9 2v10M5 8l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2.5 15.5h13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
-
-      {/* Download button — top-right corner of the card */}
-      <button
-        type="button"
-        className="btn btn--download"
-        onClick={() => downloadReport(report, investigationId)}
-        title="Download report as .txt"
-        aria-label="Download report as .txt"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <path d="M9 2v10M5 8l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M2.5 15.5h13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-        </svg>
-      </button>
 
       {/* Risk description */}
       <div className={`risk-description risk-description--${riskClass}`}>
