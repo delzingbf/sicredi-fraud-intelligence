@@ -30,7 +30,7 @@ Para executar novamente o teste do IBM Granite:
 3. Configure `IBM_PROJECT_ID` (seção 3).
 4. Informe sua API Key de forma segura (seção 3).
 5. Gere o token `IBM_ACCESS_TOKEN` (seção 4).
-6. Execute `node test-tool-calling.mjs` (seção 5).
+6. Execute `node docs/poc/test-tool-calling.mjs` (seção 5).
 
 **Importante:** utilize o mesmo terminal durante o processo.
 Ao abrir uma nova sessão, será necessário configurar as
@@ -42,7 +42,7 @@ Nunca compartilhe sua API Key ou token de acesso.
 
 - Terminal com **zsh**, `curl`, `jq` e Node.js compatível com o projeto. Se o script usa `fetch` nativo, use Node.js 18 ou superior, preferindo a versão definida no repositório.
 - Acesso à conta IBM Cloud correta e ao projeto acima, com permissões para usar a instância de watsonx.ai Runtime associada.
-- Repositório Hello Moto clonado, com o arquivo `test-tool-calling.mjs` e as dependências previstas pelo projeto instaladas.
+- Repositório clonado, com o arquivo `docs/poc/test-tool-calling.mjs`. O PoC isolado não precisa de PostgreSQL ou de dependências do workspace.
 
 Confira as ferramentas:
 
@@ -147,27 +147,37 @@ cd /caminho/para/sicredi-fraud-intelligence
 pwd
 ```
 
-O script de PoC estava originalmente na raiz como `test-tool-calling.mjs`.
-Após o Sub-Task 1 do plano de implementação, ele é movido para `docs/poc/test-tool-calling.mjs`.
-Use `ls test-tool-calling.mjs` ou `ls docs/poc/test-tool-calling.mjs` dependendo do estado do repositório.
-
-Antes de rodar, confirme no script que ele lê `process.env.IBM_PROJECT_ID` e `process.env.IBM_ACCESS_TOKEN`, usa o modelo `ibm/granite-4-h-small`, a região `us-south` e não registra credenciais. Caso o script use outros nomes de variáveis, alinhe-os ao contrato deste guia. Um script que exige a API key para autenticação automática tem um fluxo diferente do Bearer token manual aqui descrito.
+A partir da raiz, com as variáveis exportadas, rode:
 
 ```zsh
-# Antes do Sub-Task 1 (script na raiz):
-if [[ -n "$IBM_PROJECT_ID" && -n "$IBM_ACCESS_TOKEN" ]]; then
-  node test-tool-calling.mjs
-else
-  printf 'Falta Project ID ou access token. Conclua as etapas 3 e 4.\n'
-fi
-
-# Após o Sub-Task 1 (script em docs/poc/):
-if [[ -n "$IBM_PROJECT_ID" && -n "$IBM_ACCESS_TOKEN" ]]; then
-  node docs/poc/test-tool-calling.mjs
-else
-  printf 'Falta Project ID ou access token. Conclua as etapas 3 e 4.\n'
-fi
+node docs/poc/test-tool-calling.mjs
 ```
+
+Para rodar a aplicação, siga o [setup do repositório](../README.md#first-time-setup-run-once).
+Configure `IBM_PROJECT_ID` e `IBM_ACCESS_TOKEN` em `apps/api/.env` ou exporte-os
+na sessão em que vai iniciar a API. Depois de renovar o token, reinicie a API.
+
+### Gerar o token no PowerShell
+
+Na raiz do repositório, com `IBM_PROJECT_ID` em `apps/api/.env`, execute:
+
+```powershell
+$chave = Read-Host 'Cole sua API key da IBM Cloud' -AsSecureString
+try {
+    $resposta = Invoke-RestMethod -Method Post -Uri 'https://iam.cloud.ibm.com/identity/token' `
+        -ContentType 'application/x-www-form-urlencoded' -Body @{
+            grant_type = 'urn:ibm:params:oauth:grant-type:apikey'
+            apikey = ([pscredential]::new('ibm', $chave)).GetNetworkCredential().Password
+        } -ErrorAction Stop
+    $env:IBM_ACCESS_TOKEN = $resposta.access_token
+    Write-Host "Token gerado. Validade: $($resposta.expires_in) segundos."
+} finally {
+    Remove-Variable chave, resposta -ErrorAction SilentlyContinue
+}
+```
+
+Inicie o backend nessa mesma janela. Para rodar apenas o PoC, defina também
+`$env:IBM_PROJECT_ID` com o ID do projeto antes de executar o script.
 
 Na requisição REST, o token vai no cabeçalho `Authorization: Bearer ...`; `project_id` e `model_id` vão no corpo JSON. A rota é `https://us-south.ml.cloud.ibm.com/ml/v1/text/chat?version=AAAA-MM-DD`: mantenha o parâmetro `version` compatível com a versão já utilizada pelo script e pela referência da API. Não envie a API key como Bearer token.
 

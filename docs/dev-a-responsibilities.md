@@ -222,7 +222,7 @@ POST /investigations { "transactionId": "EVT_SYN_000000001" }
 |---|---|---|---|
 | 1 | `docs/data-contract.md` | 2 | — |
 | 2 | Migrations TypeORM | 3 | 1 |
-| 3 | `scripts/import-data.mjs` | 3 | 1 |
+| 3 | `scripts/import-csv.mjs` | 3 | 1 |
 | 4 | `DataService` | 3 | 2, 3 |
 | 5 | Ferramenta `getTransactionDetails` | 3 | 4 |
 | 6 | Ferramenta `getCustomerProfile` | 3 | 4 |

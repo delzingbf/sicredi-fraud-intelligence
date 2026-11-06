@@ -398,13 +398,14 @@ Após tudo funcionando e2e:
 ```
 
 
-## Estado e integração atual (2026-10-24)
+## Estado e integração atual (2026-11-06)
 
-- Issues #1–#3: base e contratos implementados; Docker Compose e scaffold web também existem. TypeORM e migrations ainda faltam.
-- Issues #5–#7: código do agente e testes presentes. Integração real com IBM usa três ferramentas mockadas, incluindo `getTransactionDetails`.
-- Issue #9: API, políticas, fallback, timeout e verificação simulada implementados. Integração com ferramentas e dados reais continua pendente.
-- Issues #4, #8, #10 e parte de #11: contrato de dados, PostgreSQL/TypeORM e ferramentas reais pendentes.
-- Issue #12: scaffold pronto, interface de investigação pendente. Issue #13: avaliação pendente.
-- Contrato B/C vigente: `investigate(request: { transactionId: string }, signal: AbortSignal): Promise<{ finalText: string; toolsExecuted: string[] }>`.
-- A resposta HTTP é `{ investigationId, report }`. A verificação é uma ação posterior da API, não uma ferramenta livre do modelo.
-- As listas originais acima não equivalem ao estado das issues no GitHub. Não foi consultado o rastreador remoto nem reexecutada a suíte nesta auditoria.
+- Issues #1–#3: base, contratos e Docker Compose implementados.
+- Issues #4 e #8: contrato de dados, TypeORM, migration, importador CSV e duas ferramentas PostgreSQL implementados.
+- Issues #5–#7: cliente IBM, catálogo e agente implementados. Velocidade ainda usa mock.
+- Issue #9: API, políticas, fallback, timeout e verificação simulada implementados.
+- Issues #10 e #11: ferramentas analíticas e restantes pendentes. Verificação do associado já é uma ação da API.
+- Issue #12: interface integrada em desenvolvimento; correção do build de produção pendente.
+- Issue #13: avaliação offline pendente.
+- Contrato B/C: `investigate(request: { transactionId: string }, signal: AbortSignal): Promise<{ finalText: string; toolsExecuted: string[] }>`. A resposta HTTP é `{ investigationId, report }`.
+- Este é o estado do código local. Os números acima referem-se às propostas deste backlog.

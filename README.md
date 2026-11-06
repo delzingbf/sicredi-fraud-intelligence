@@ -38,7 +38,7 @@ selecting tools, gathering evidence, and producing a structured, explainable rep
 
 ## Prerequisites
 
-- **Node.js 18+** — https://nodejs.org (download the LTS version)
+- **Node.js 24 LTS** — recommended for this workspace and the migration CLI
 - **pnpm 8+** — after installing Node.js: `npm install -g pnpm`
 - **Docker Desktop** — https://www.docker.com/products/docker-desktop (for local PostgreSQL)
   - Alternative: install PostgreSQL directly and create a `fraudlens` user/database
@@ -53,11 +53,13 @@ selecting tools, gathering evidence, and producing a structured, explainable rep
 pnpm install
 
 # 2. Copy environment template and fill in your IBM credentials
-cp .env.example .env
-# Edit .env — see docs/IBM_WATSONX_SETUP.md for how to get IBM_ACCESS_TOKEN
+cp -n .env.example apps/api/.env
+# Edit apps/api/.env — see docs/IBM_WATSONX_SETUP.md for how to get IBM_ACCESS_TOKEN
 
 # 3. Start local PostgreSQL database
 docker compose up -d db
+docker compose ps
+# Wait until db is healthy.
 
 # 4. Build the API (required so the TypeORM CLI can find dist/data-source.js)
 pnpm --filter @fraud-intelligence/api build
@@ -65,11 +67,15 @@ pnpm --filter @fraud-intelligence/api build
 # 5. Apply database migration (creates the transactions table and indexes)
 pnpm --filter @fraud-intelligence/api migration:run
 
-# 6. Import the synthetic dataset (900k rows — takes a few minutes)
+# 6. Place the team CSV under data/ (it is not in Git), then import it
 node scripts/import-csv.mjs
 ```
 
 ---
+
+On PowerShell, use `Copy-Item .env.example apps/api/.env` for step 2 only if the destination does not already exist.
+
+The supplied CSV has a historical filename ending in `900k.csv`; the documented import used a distribution with 160,000 rows and loaded 158,701. See the [data contract](docs/data-contract.md). The API, migration CLI and importer use the Compose connection by default. For a custom database, export `DATABASE_URL` before running the migration and import, as those commands do not load `apps/api/.env`.
 
 ## Day-to-day development
 
@@ -85,13 +91,15 @@ pnpm --filter @fraud-intelligence/api start:dev
 pnpm --filter @fraud-intelligence/web start:dev
 ```
 
+Open the UI at [localhost:5173](http://localhost:5173) (or the URL printed by Vite) and investigate `EVT_SYN_000000001`. The API runs at `http://localhost:3001` by default.
+
 Health check (PowerShell):
 ```powershell
 Invoke-RestMethod http://localhost:3001/health
 # → status : ok
 ```
 
-Smoke test — run a real fraud investigation (PowerShell):
+Smoke test — investigate an imported transaction (PowerShell):
 ```powershell
 Invoke-RestMethod -Method POST -Uri "http://localhost:3001/investigations" `
   -ContentType "application/json" `
@@ -107,40 +115,17 @@ Expected: JSON with `investigationId`, `report.riskLevel`, `report.toolsExecuted
 IBM access tokens expire after approximately one hour.
 See [`docs/IBM_WATSONX_SETUP.md`](docs/IBM_WATSONX_SETUP.md) for the full guide.
 
-> **Important (Windows):** the `.env` file must be at `apps/api/.env`, not at the
-> repo root. The NestJS process runs from `apps/api/` and reads `.env` relative to
-> its working directory.
-
-### Generating a token (PowerShell)
-
-Run this once per session (or whenever the token expires). It generates the token
-and writes it directly into `apps/api/.env` without displaying it on screen:
-
-```powershell
-$API_KEY = "your_ibm_api_key_here"
-
-$response = Invoke-RestMethod `
-  -Uri "https://iam.cloud.ibm.com/identity/token" `
-  -Method POST `
-  -ContentType "application/x-www-form-urlencoded" `
-  -Body "grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=$API_KEY"
-
-# Write token directly into apps/api/.env (replaces existing line)
-$envPath = "apps\api\.env"
-$content = Get-Content $envPath
-$content = $content -replace "^IBM_ACCESS_TOKEN=.*", "IBM_ACCESS_TOKEN=$($response.access_token)"
-$content | Set-Content $envPath
-
-Write-Host "Token updated. Length: $($response.access_token.Length) chars"
-```
-
-The `start:dev` watch mode detects the `.env` change and restarts automatically.
+Put `IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN` in `apps/api/.env` on macOS and
+Windows, or export them before starting the API. The workspace starts NestJS
+from `apps/api`; a root `.env` is not loaded automatically by the API.
+After updating the token, restart the API. See the [credential guide](docs/IBM_WATSONX_SETUP.md)
+for macOS/Linux and PowerShell instructions.
 
 Never commit API keys, access tokens, or `.env` files with real values.
 
 ---
 
-## Project status (2026-11-04)
+## Project status (2026-11-06)
 
 | Component | Status |
 |---|---|
@@ -155,15 +140,17 @@ Never commit API keys, access tokens, or `.env` files with real values.
 | IBM integration — tool calling validated | ✅ Done |
 | Analytical tools (velocity, spending, context) | ⏳ Sub-Task 6 |
 | Remaining tools + full catalog | ⏳ Sub-Task 7 |
-| React frontend | ⏳ Sub-Task 8 |
+| React investigation UI | Integrated in development; production build fix pending (Sub-Task 8) |
 | Evaluation harness | ⏳ Sub-Task 9 |
 
 ---
 
+**Current demo limitation:** transaction details and customer profile come from PostgreSQL; velocity still returns fixed mock evidence. The customer profile uses the latest snapshot, which can postdate the investigated transaction. Use the current flow to demonstrate integration, not to validate risk classifications.
+
 ## Security notes
 
 - The `feedback_label` column (fraud ground-truth) is never sent to the agent.
-  It is used only in the offline evaluation harness (`scripts/evaluate.mjs`).
+  It is reserved for offline evaluation (Sub-Task 9, pending).
 - All tool calls are validated against a whitelist before execution.
 - The agent's final report is validated via Zod before any action is taken.
 - `requestMemberVerification` requires backend policy approval — it is not a free agent call.
