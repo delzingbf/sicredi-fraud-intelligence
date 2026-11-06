@@ -533,10 +533,6 @@ body {
   color: var(--color-risk-high);
 }
 
-.human-review-flag {
-  opacity: 0.75;
-}
-
 /* ── Report sections ──────────────────────────────────────────────────────── */
 .report-section {
   padding: 16px 20px;
