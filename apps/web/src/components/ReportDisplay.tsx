@@ -212,27 +212,11 @@ export function ReportDisplay({
         title="Download report as .txt"
         aria-label="Download report as .txt"
       >
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-          <path d="M11 3v11M6.5 9.5l4.5 4.5 4.5-4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M3 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M9 2v10M5 8l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2.5 15.5h13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
         </svg>
       </button>
-
-      {/* Colour legend */}
-      <div className="risk-legend" aria-label="Risk level colour guide">
-        <span className="risk-legend-item risk-legend-item--low-risk">
-          <RiskIcon level="LOW_RISK" /> Low Risk — no significant signals
-        </span>
-        <span className="risk-legend-item risk-legend-item--suspicious">
-          <RiskIcon level="SUSPICIOUS" /> Suspicious — unusual patterns
-        </span>
-        <span className="risk-legend-item risk-legend-item--high-risk">
-          <RiskIcon level="HIGH_RISK" /> High Risk — strong fraud indicators
-        </span>
-        <span className="risk-legend-item risk-legend-item--inconclusive">
-          <RiskIcon level="INCONCLUSIVE" /> Inconclusive — insufficient data
-        </span>
-      </div>
 
       {/* Risk description */}
       <div className={`risk-description risk-description--${riskClass}`}>
@@ -337,5 +321,26 @@ function EvidenceList({
         </ul>
       )}
     </section>
+  );
+}
+
+/** Standalone colour legend — render outside the report card. */
+export function RiskLegend() {
+  return (
+    <div className="risk-legend-standalone" aria-label="Risk level colour guide">
+      <span className="risk-legend-label">Colour guide:</span>
+      <span className="risk-legend-item risk-legend-item--low-risk">
+        <RiskIcon level="LOW_RISK" /> Low Risk — no significant signals
+      </span>
+      <span className="risk-legend-item risk-legend-item--suspicious">
+        <RiskIcon level="SUSPICIOUS" /> Suspicious — unusual patterns
+      </span>
+      <span className="risk-legend-item risk-legend-item--high-risk">
+        <RiskIcon level="HIGH_RISK" /> High Risk — strong fraud indicators
+      </span>
+      <span className="risk-legend-item risk-legend-item--inconclusive">
+        <RiskIcon level="INCONCLUSIVE" /> Inconclusive — insufficient data
+      </span>
+    </div>
   );
 }

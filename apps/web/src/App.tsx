@@ -3,7 +3,7 @@ import type { InvestigationResult, VerificationRecord } from '@fraud-intelligenc
 import { startInvestigation, requestMemberVerification } from './api.js';
 import { ApiError } from './api.js';
 import { InvestigationForm } from './components/InvestigationForm.js';
-import { ReportDisplay } from './components/ReportDisplay.js';
+import { ReportDisplay, RiskLegend } from './components/ReportDisplay.js';
 import { ToolTrace } from './components/ToolTrace.js';
 import { MemberVerificationDialog } from './components/MemberVerificationDialog.js';
 import './App.css';
@@ -113,6 +113,8 @@ export default function App() {
 
         {/* Result */}
         {state.phase === 'result' && (
+          <>
+          <RiskLegend />
           <div className="result-layout">
             {/* Main report */}
             <div className="result-main">
@@ -142,6 +144,7 @@ export default function App() {
               )}
             </aside>
           </div>
+          </>
         )}
       </main>
 
