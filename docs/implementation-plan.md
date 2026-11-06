@@ -101,7 +101,7 @@ sicredi-fraud-intelligence/
 │   ├── IBM_WATSONX_SETUP.md
 │   ├── implementation-plan.md       ← this file (authoritative)
 │   ├── backlog.md
-│   ├── data-contract.md             ← ⏳ PENDING — Sub-Task 2 output (not yet committed)
+│   ├── data-contract.md            
 │   └── poc/
 │       └── test-tool-calling.mjs
 ├── packages/
