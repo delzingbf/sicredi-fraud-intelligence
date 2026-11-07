@@ -29,7 +29,7 @@ original architecture record (`docs/fraud-intelligence-architecture-plan.md`).
 | PostgreSQL Docker Compose + db scripts | ✅ IMPLEMENTED |
 | TypeORM integration + migrations | ✅ IMPLEMENTED — Sub-Task 3 |
 | DataService / CSV import / migrations | ✅ IMPLEMENTED — Sub-Tasks 2–3 |
-| `WatsonxClient` + `ToolRegistry` + `AgentOrchestrator` | ✅ IMPLEMENTED — real IBM; two PostgreSQL tools and mock velocity |
+| `WatsonxClient` + `ToolRegistry` + `AgentOrchestrator` | ✅ IMPLEMENTED — real IBM; two PostgreSQL tools |
 | Analytical tools (velocity, spending, context) | ⏳ PENDING — Sub-Task 6 |
 | Remaining data tools | ⏳ PENDING — Sub-Task 7 |
 | Simulated member verification + policy gate | ✅ IMPLEMENTED — post-investigation endpoints |
@@ -419,7 +419,7 @@ redesign.
 - Credentials: `IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN` env vars.
 
 **Current implementation notes (2026-10-24):**
-- `AgentModule` initially registers three mocks. At application startup, `ToolsModule` replaces transaction details and customer profile with PostgreSQL implementations. Velocity still returns fixed mock data.
+- `AgentModule` initially registers two mocks. At application startup, `ToolsModule` replaces transaction details and customer profile with PostgreSQL implementations. Velocity is absent from the API catalog until the real tool is available; the standalone PoC still uses its mock.
 - The orchestrator attempts one JSON syntax correction without tools, within the round budget and timeout. Zod and semantic validation remain in `PolicyService`.
 - `ToolRegistry` enforces registered names and parses arguments into objects (including double-encoded JSON). Per-tool schema/type validation is not yet centralized; implementations currently check required identifiers.
 - IBM errors, including HTTP 401, currently map to generic `IBM_ERROR`; the API does not specifically identify expired tokens.
@@ -704,8 +704,8 @@ curl -sS http://localhost:3001/investigations \
 ```
 
 The API returns `{ investigationId, report }`. The model call uses real IBM
-credentials. Transaction details and customer profile use PostgreSQL, but the
-velocity result is simulated. The profile uses the latest customer snapshot;
+credentials. Transaction details and customer profile use PostgreSQL.
+Velocity analysis is not available in the API yet. The profile uses the latest customer snapshot;
 a time cutoff at the investigated transaction is still pending. A successful
 request demonstrates integration, not detection quality. For a standalone
 mock-data IBM test, see the [original PoC](poc/test-tool-calling.mjs).

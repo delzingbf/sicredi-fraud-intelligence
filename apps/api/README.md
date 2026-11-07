@@ -18,7 +18,7 @@ pnpm --filter @fraud-intelligence/api start:dev
 
 Health check: `curl http://localhost:3001/health`
 
-See the [root setup](../../README.md#first-time-setup-run-once) and [IBM credential guide](../../docs/IBM_WATSONX_SETUP.md). The API uses PostgreSQL for transaction details and customer profile. The velocity tool still returns mock data.
+See the [root setup](../../README.md#first-time-setup-run-once) and [IBM credential guide](../../docs/IBM_WATSONX_SETUP.md). The API uses PostgreSQL for transaction details and customer profile. The velocity tool is not registered in the API while its PostgreSQL implementation is pending.
 
 ## Scripts
 

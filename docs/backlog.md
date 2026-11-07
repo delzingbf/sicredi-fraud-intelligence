@@ -402,7 +402,7 @@ Após tudo funcionando e2e:
 
 - Issues #1–#3: base, contratos e Docker Compose implementados.
 - Issues #4 e #8: contrato de dados, TypeORM, migration, importador CSV e duas ferramentas PostgreSQL implementados.
-- Issues #5–#7: cliente IBM, catálogo e agente implementados. Velocidade ainda usa mock.
+- Issues #5–#7: cliente IBM, catálogo e agente implementados. A ferramenta de velocidade permanece fora do catálogo da API até a implementação com PostgreSQL.
 - Issue #9: API, políticas, fallback, timeout e verificação simulada implementados.
 - Issues #10 e #11: ferramentas analíticas e restantes pendentes. Verificação do associado já é uma ação da API.
 - Issue #12: interface integrada em desenvolvimento; correção do build de produção pendente.

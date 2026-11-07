@@ -145,7 +145,7 @@ Never commit API keys, access tokens, or `.env` files with real values.
 
 ---
 
-**Current demo limitation:** transaction details and customer profile come from PostgreSQL; velocity still returns fixed mock evidence. The customer profile uses the latest snapshot, which can postdate the investigated transaction. Use the current flow to demonstrate integration, not to validate risk classifications.
+**Current demo limitation:** transaction details and customer profile come from PostgreSQL; velocity analysis is disabled until the PostgreSQL implementation is available. The customer profile uses the latest snapshot, which can postdate the investigated transaction. Use the current flow to demonstrate integration, not to validate risk classifications.
 
 ## Security notes
 

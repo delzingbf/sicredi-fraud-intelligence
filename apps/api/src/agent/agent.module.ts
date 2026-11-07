@@ -143,49 +143,6 @@ import type { ToolResult } from '@fraud-intelligence/contracts';
             };
           },
         });
-
-        registry.register('analyzeTransactionVelocity', {
-          definition: {
-            type: 'function',
-            function: {
-              name: 'analyzeTransactionVelocity',
-              description:
-                'Verifica se houve rajada de transações recentes: contagem e valor acumulado ' +
-                'em janelas de tempo curtas. Útil para detectar uso massivo em pouco tempo.',
-              parameters: {
-                type: 'object',
-                properties: {
-                  transactionId: {
-                    type: 'string',
-                    description: 'ID da transação a investigar.',
-                  },
-                },
-                required: ['transactionId'],
-              },
-            },
-          },
-          implementation: (args): ToolResult => {
-            const transactionId = args['transactionId'] as string | undefined;
-            if (!transactionId) {
-              return {
-                status: 'error',
-                data: null,
-                metadata: { tool: 'analyzeTransactionVelocity', dataSource: 'mock', missingFields: ['transactionId'] },
-                message: 'transactionId is required',
-              };
-            }
-            return {
-              status: 'success',
-              data: {
-                transactionId,
-                transactionsLast10Minutes: 3,
-                totalAmountLast10Minutes: 10800,
-                velocityAnomaly: true,
-              },
-              metadata: { tool: 'analyzeTransactionVelocity', dataSource: 'mock', missingFields: [] },
-            };
-          },
-        });
       },
       inject: [ToolRegistry],
     },
