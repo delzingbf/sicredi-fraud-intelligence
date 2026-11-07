@@ -607,26 +607,64 @@ investigation report and tool trace. No advanced UI until core flow works.
 transactions and computes quality metrics. This is the primary validation of the
 system's fraud detection quality.
 
-**Status:** [ ] pending
+**Status:** [-] in progress — 2026-11-06
 
-**Expected Outcomes:**
-- Script accepts a sample size N and a random seed for reproducibility.
-- Sample is stratified: includes both fraud and legitimate transactions.
-- Each transaction is submitted to the running API.
-- The `riskLevel` from the report is compared to `feedback_label` from the CSV.
-- Metrics computed: Precision, Recall, F1 (per class), AUPRC, confusion matrix.
-- Tool selection patterns are logged (which tools were called per investigation).
-- Results written to `data/processed/evaluation-YYYY-MM-DD.json`.
+**Delivered (first version):**
+- `scripts/evaluate.mjs` — Node.js ESM script; zero external dependencies
+- `scripts/evaluate.test.mjs` — 37 unit tests using `node:test`; all passing
 
-**Todo:**
-1. Write a Node.js or Python script in `scripts/evaluate.mjs`.
-2. Load the CSV and sample N rows with stratification.
-3. For each sampled transaction, call `POST /investigations` on the local API.
-4. Map `riskLevel` to a binary prediction: `HIGH_RISK` or `SUSPICIOUS` → predicted fraud.
-5. Compute precision, recall, F1, and confusion matrix against `feedback_label`.
-6. Log tool call patterns.
-7. Write results to `data/processed/`.
-8. Document how to run: `node scripts/evaluate.mjs --n 200 --seed 42`.
+**Design decisions:**
+- CSV is streamed line-by-line (no full load into memory — 160k+ rows).
+- Stratified reservoir sampling (Vitter's Algorithm R) applied independently per
+  class. Quota = `floor(N/2)` per class; if one class has fewer rows it takes all
+  available and the other fills the remainder.
+- Seeded PRNG (mulberry32) — no external dep, same seed → identical sample on any
+  machine regardless of platform.
+- `feedback_label` is read from the CSV for local comparison only. It is never
+  included in any API request body, any log line printed to stdout, or any
+  `toolsExecuted`/`evidenceFor`/`evidenceAgainst` field.
+- Prediction rule: `HIGH_RISK | SUSPICIOUS` → FRAUD; `LOW_RISK` → LEGIT;
+  `INCONCLUSIVE` → excluded from precision/recall/F1, counted separately.
+- INCONCLUSIVE sub-classification: cases where `toolsExecuted.length === 0` are
+  flagged as likely IBM/timeout fallback (agent never ran); cases with non-empty
+  `toolsExecuted` reflect genuine agent uncertainty.
+- ERROR bucket: network failure or non-200 HTTP — separated from INCONCLUSIVE.
+- Coverage metric: `classified / total` — shows what fraction of cases received
+  a definitive classification.
+- AUPRC: **not computed** — the API returns a 3-class ordinal label, not a
+  continuous probability. Mapping SUSPICIOUS/HIGH_RISK to arbitrary scores would
+  be misleading. Deferred until a calibrated score is available.
+- Results saved to `data/processed/evaluation-YYYY-MM-DD.json`; `data/processed/`
+  is excluded from git via the existing `/data/*` rule.
+
+**Class imbalance note (documented in script output):**
+  The synthetic dataset is ~0.1% fraud. A stratified sample of `n=100` with
+  `floor(N/2)=50` per class has a ~50% fraud rate — far higher than production.
+  This inflates recall and may inflate precision relative to a random sample.
+  The script prints this warning on every run.
+
+**Usage:**
+```bash
+# Unit tests (no CSV, no API needed)
+node --test scripts/evaluate.test.mjs
+# or via workspace shortcut:
+pnpm evaluate:test
+
+# Real evaluation (API must be running with IBM credentials)
+node scripts/evaluate.mjs \
+  --csv  data/case_transacoes_cartoes_sintetico_900k.csv \
+  --n    100 \
+  --seed 42 \
+  [--api-url http://localhost:3001]
+# or:
+pnpm evaluate -- --n 100 --seed 42
+```
+
+**Remaining work (before marking done):**
+- Run against the live API once Sub-Task 6 tools are merged (velocity etc.) so
+  results reflect realistic tool selection patterns.
+- Consider adding `--concurrency` flag to parallelise API calls and reduce
+  wall-clock time for large N.
 
 **Owner:** Dev C (architecture) + Dev D (implementation)
 
