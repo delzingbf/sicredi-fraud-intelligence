@@ -141,7 +141,7 @@ Never commit API keys, access tokens, or `.env` files with real values.
 | Analytical tools (velocity, spending, context) | ⏳ Sub-Task 6 |
 | Remaining tools + full catalog | ⏳ Sub-Task 7 |
 | React investigation UI | Integrated in development; production build fix pending (Sub-Task 8) |
-| Evaluation harness | ⏳ Sub-Task 9 |
+| Evaluation harness | 🔄 In progress — Sub-Task 9 |
 
 ---
 
