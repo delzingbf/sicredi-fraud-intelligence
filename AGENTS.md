@@ -167,7 +167,7 @@ For credential setup, see `docs/IBM_WATSONX_SETUP.md`.
 ## Current status (2026-11-06)
 
 - The React investigation UI is integrated in development (Sub-Task 8); the production build fix remains pending.
-- Transaction details and customer profile query PostgreSQL. Velocity still returns fixed mock evidence; do not treat it as dataset evidence.
+- Transaction details and customer profile query PostgreSQL. Velocity analysis is not registered in the API until its PostgreSQL implementation is available.
 
 Pending:
 - Analytical tools: `analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext` — Sub-Task 6
