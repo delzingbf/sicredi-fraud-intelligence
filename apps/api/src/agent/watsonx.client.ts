@@ -1,3 +1,4 @@
+import { IbmTokenProvider } from './ibm-token.provider.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AppEnv } from '../config/app.config.js';
@@ -72,6 +73,7 @@ export class WatsonxClient {
   private readonly url: string;
   private readonly projectId: string;
   private readonly modelId: string;
+  private readonly tokens: IbmTokenProvider;
 
   /** Fixed inference parameters validated experimentally with Granite 4 H Small. */
   private static readonly TEMPERATURE = 0;
@@ -79,6 +81,7 @@ export class WatsonxClient {
   private static readonly TOOL_CHOICE_OPTION = 'auto';
 
   constructor(private readonly config: ConfigService<AppEnv, true>) {
+    this.tokens = new IbmTokenProvider(config);
     this.url = this.config.get('IBM_CHAT_API_URL', { infer: true });
     this.projectId = this.config.get('IBM_PROJECT_ID', { infer: true });
     this.modelId = this.config.get('IBM_MODEL_ID', { infer: true });
@@ -97,7 +100,7 @@ export class WatsonxClient {
     tools: IbmToolDefinition[],
     signal: AbortSignal,
   ): Promise<IbmResponseMessage> {
-    const token = this.config.get('IBM_ACCESS_TOKEN', { infer: true });
+    const token = await this.tokens.getToken(signal);
 
     const body = {
       project_id: this.projectId,

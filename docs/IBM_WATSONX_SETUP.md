@@ -21,7 +21,18 @@ O trial do **watsonx Orchestrate estava expirado no ambiente da equipe**. O cami
 
 Este documento registra a configuração informada pela equipe; não é um novo teste de acesso à conta IBM. O script `test-tool-calling.mjs` deve estar no repositório da equipe e não é criado por este guia.
 
-## Início rápido — sessões futuras
+## Escolha do modo de autenticação
+
+Para usar a aplicação com JSON, siga a seção **Autenticação automática com JSON local**
+ao final deste guia. O caminho recomendado no Mac é
+`/Users/Delzin/.config/fraudlens/ibm-api-key.json`, fora do repositório.
+Configure o caminho em `apps/api/.env`; não precisa gerar token manualmente
+a cada terminal nem salvar a API key no `.env`.
+
+As etapas zsh/PowerShell abaixo descrevem a alternativa manual e o PoC isolado.
+No modo manual, o token precisa ser renovado e a API reiniciada após expirar.
+
+## Início rápido — sessões futuras (modo manual)
 
 Para executar novamente o teste do IBM Granite:
 
@@ -240,3 +251,27 @@ Ao pedir ajuda aos outros três integrantes, compartilhe somente status HTTP, me
 - [IBM watsonx.ai — Modelos Granite disponíveis](https://www.ibm.com/docs/en/watsonx/saas?topic=models-foundation)
 
 Documentação preparada em 22/10/2026. Disponibilidade, permissões e cotas dependem do ambiente IBM da equipe.
+
+## Autenticação automática com JSON local (2026-11-08)
+
+A API agora aceita um arquivo JSON com o campo `apikey` (formato exportado pelo
+IBM Cloud). Prefira guardá-lo fora do repositório. Uma pasta local `.secrets/` ignorada
+pelo Git é uma alternativa, mas não impede compartilhamento da pasta por ZIP. Não coloque esse arquivo no frontend.
+
+Em `apps/api/.env`, configure o caminho absoluto, por exemplo:
+
+```dotenv
+IBM_API_KEY_FILE=/Users/Delzin/.config/fraudlens/ibm-api-key.json
+```
+
+Mantenha `IBM_PROJECT_ID`. Com `IBM_API_KEY_FILE` definido, o arquivo tem prioridade
+sobre o token manual. Reinicie a API após configurar. Na primeira chamada, o backend
+obtém um token do IAM e o guarda somente em memória; na próxima chamada próxima
+ao vencimento (margem de 60 segundos), solicita outro. Nenhum token é escrito no
+`.env`. Cada investigação mantém seu sinal de timeout, inclusive durante o IAM.
+Requisições simultâneas durante a renovação podem obter tokens separadamente.
+Falhas no IAM não disparam tentativas automáticas ilimitadas.
+
+Sem esse caminho, `IBM_ACCESS_TOKEN` continua funcionando como antes.
+A chave precisa ter acesso ao projeto; gerar token não concede permissões.
+O PoC isolado continua exigindo token exportado e não usa esse provedor.

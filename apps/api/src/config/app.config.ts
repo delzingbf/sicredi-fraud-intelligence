@@ -8,7 +8,8 @@ import { registerAs } from '@nestjs/config';
 const envSchema = z.object({
   // IBM watsonx.ai
   IBM_PROJECT_ID: z.string().min(1, 'IBM_PROJECT_ID is required'),
-  IBM_ACCESS_TOKEN: z.string().min(1, 'IBM_ACCESS_TOKEN is required'),
+  IBM_ACCESS_TOKEN: z.string().optional(),
+  IBM_API_KEY_FILE: z.string().trim().min(1).optional(),
   IBM_CHAT_API_URL: z
     .string()
     .url()
@@ -26,6 +27,14 @@ const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string().url().default('postgresql://fraudlens:fraudlens@localhost:5432/fraudlens'),
+}).superRefine((env, ctx) => {
+  if (!env.IBM_API_KEY_FILE && !env.IBM_ACCESS_TOKEN?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['IBM_ACCESS_TOKEN'],
+      message: 'Set IBM_ACCESS_TOKEN or IBM_API_KEY_FILE',
+    });
+  }
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

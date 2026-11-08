@@ -54,7 +54,7 @@ pnpm install
 
 # 2. Copy environment template and fill in your IBM credentials
 cp -n .env.example apps/api/.env
-# Edit apps/api/.env — see docs/IBM_WATSONX_SETUP.md for how to get IBM_ACCESS_TOKEN
+# Edit apps/api/.env — set IBM_PROJECT_ID and IBM_API_KEY_FILE (or a manual IBM_ACCESS_TOKEN)
 
 # 3. Start local PostgreSQL database
 docker compose up -d db
@@ -115,10 +115,12 @@ Expected: JSON with `investigationId`, `report.riskLevel`, `report.toolsExecuted
 IBM access tokens expire after approximately one hour.
 See [`docs/IBM_WATSONX_SETUP.md`](docs/IBM_WATSONX_SETUP.md) for the full guide.
 
-Put `IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN` in `apps/api/.env` on macOS and
-Windows, or export them before starting the API. The workspace starts NestJS
+Put `IBM_PROJECT_ID` in `apps/api/.env` on macOS and Windows. For automatic
+authentication, set `IBM_API_KEY_FILE` to the absolute path of a private JSON
+file outside this repository. Alternatively, supply a manual `IBM_ACCESS_TOKEN`. The workspace starts NestJS
 from `apps/api`; a root `.env` is not loaded automatically by the API.
-After updating the token, restart the API. See the [credential guide](docs/IBM_WATSONX_SETUP.md)
+Restart the API after changing configuration. Manual tokens require replacement
+after expiry; file-based authentication renews tokens on demand without restarting. See the [credential guide](docs/IBM_WATSONX_SETUP.md)
 for macOS/Linux and PowerShell instructions.
 
 Never commit API keys, access tokens, or `.env` files with real values.
@@ -154,3 +156,10 @@ Never commit API keys, access tokens, or `.env` files with real values.
 - All tool calls are validated against a whitelist before execution.
 - The agent's final report is validated via Zod before any action is taken.
 - `requestMemberVerification` requires backend policy approval — it is not a free agent call.
+
+### Automatic IBM token renewal
+
+Optionally set `IBM_API_KEY_FILE` in `apps/api/.env` to the absolute path of a
+private IBM Cloud JSON export containing `apikey`. The backend obtains and caches
+the IAM token in memory, renewing it on demand before expiry. It does not rewrite
+your `.env`. See [the automatic authentication guide](docs/IBM_WATSONX_SETUP.md#autenticação-automática-com-json-local-2026-11-08).
