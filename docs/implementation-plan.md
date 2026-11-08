@@ -416,7 +416,7 @@ redesign.
 - API URL: `https://us-south.ml.cloud.ibm.com/ml/v1/text/chat?version=2024-10-08`
 - Model: `ibm/granite-4-h-small`
 - The `content` field in system and tool messages is an array: `[{type: "text", text: "..."}]`.
-- Credentials: `IBM_PROJECT_ID` and `IBM_ACCESS_TOKEN` env vars.
+- Credentials: `IBM_PROJECT_ID` plus `IBM_API_KEY_FILE` or a manual `IBM_ACCESS_TOKEN`.
 
 **Current implementation notes (2026-10-24):**
 - `AgentModule` initially registers two mocks. At application startup, `ToolsModule` replaces transaction details and customer profile with PostgreSQL implementations. Velocity is absent from the API catalog until the real tool is available; the standalone PoC still uses its mock.
@@ -692,7 +692,8 @@ message so that `InvestigationService` can parse it directly.
 | Variable | Description | Example |
 |---|---|---|
 | `IBM_PROJECT_ID` | watsonx.ai project ID | `e696fb51-b4b0-4e13-8478-c66e8e9002ed` |
-| `IBM_ACCESS_TOKEN` | IAM bearer token (1h TTL) | *(generated at runtime — never commit)* |
+| `IBM_API_KEY_FILE` | Optional private JSON path; automatic IAM tokens, preferred outside repo | `/absolute/private/ibm-api-key.json` |
+| `IBM_ACCESS_TOKEN` | Manual IAM bearer token (optional with file authentication; ~1h TTL) | *(generated at runtime — never commit)* |
 | `PORT` | NestJS listen port | `3001` |
 | `MAX_INVESTIGATION_ROUNDS` | Max ReAct loop iterations | `8` |
 | `INVESTIGATION_TIMEOUT_MS` | Hard timeout per investigation (aborts the agent) | `30000` |
@@ -747,3 +748,12 @@ Velocity analysis is not available in the API yet. The profile uses the latest c
 a time cutoff at the investigated transaction is still pending. A successful
 request demonstrates integration, not detection quality. For a standalone
 mock-data IBM test, see the [original PoC](poc/test-tool-calling.mjs).
+
+## IBM credential extension (2026-11-08)
+
+`WatsonxClient` now uses `IbmTokenProvider` for authentication. An optional
+`IBM_API_KEY_FILE` selects a private JSON file with an `apikey` field. IAM tokens
+are cached in memory and renewed on demand 60 seconds before expiry. The manual
+`IBM_ACCESS_TOKEN` path remains supported when no file is configured. No credentials
+are written back to disk. This changes authentication only, not investigation policy.
+See the credential guide for setup and concurrent-renewal behavior.

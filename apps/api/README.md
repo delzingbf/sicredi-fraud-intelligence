@@ -47,3 +47,10 @@ src/
 ```
 
 See [`../../docs/implementation-plan.md`](../../docs/implementation-plan.md) for the full plan.
+
+## Authentication
+
+Set `IBM_PROJECT_ID` and `IBM_API_KEY_FILE` in `apps/api/.env`. Use an absolute
+path to a private JSON export containing `apikey`, preferably outside the repo.
+The API obtains and renews tokens on demand in memory; it does not rewrite the
+`.env`. Without the file setting, `IBM_ACCESS_TOKEN` remains supported manually.

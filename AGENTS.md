@@ -140,7 +140,8 @@ from `packages/contracts`. Validated by Zod in `PolicyService`.
 - **Model:** `ibm/granite-4-h-small`
 - **Auth:** `Authorization: Bearer $IBM_ACCESS_TOKEN` (IAM bearer token, ~1h TTL)
 - **Project ID:** `e696fb51-b4b0-4e13-8478-c66e8e9002ed` (non-secret, safe to reference)
-- **Credentials from env:** `IBM_PROJECT_ID`, `IBM_ACCESS_TOKEN` — never hardcode
+- **Credentials from env:** `IBM_PROJECT_ID` plus `IBM_API_KEY_FILE` (private JSON with `apikey`, preferred outside the repository), or manual `IBM_ACCESS_TOKEN`.
+- File-based authentication takes precedence, caches IAM tokens only in memory and renews on demand 60 seconds before expiry. Never hardcode credentials.
 
 Critical implementation details from the validated PoC:
 - `parseArguments`: double JSON.parse — Granite may serialize arguments as a JSON string
