@@ -168,16 +168,26 @@ For credential setup, see `docs/IBM_WATSONX_SETUP.md`.
 ## Current status (2026-11-08)
 
 - The React investigation UI is integrated in development (Sub-Task 8); the production build fix remains pending.
-- All 5 active tools query PostgreSQL: `getTransactionDetails`, `getCustomerProfile`,
-  `analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext`.
+- All 9 tools are registered. 8 are fully active; `checkGeographicConsistency` is a stub (geographic data fill rate ~23.9% < 30% threshold).
+
+**Active DB-backed tools:** `getTransactionDetails`, `getCustomerProfile`,
+`analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext`,
+`checkMerchantHistory`, `checkCustomerRiskEvents`.
+
+**Static tools:** `getRiskPolicy` (no DB — returns static thresholds and decision guidance).
+
+**Stub tools:** `checkGeographicConsistency` (always `status:'unavailable'`).
 
 Pending:
-- Remaining tools: `checkMerchantHistory`, `checkCustomerRiskEvents`, `getRiskPolicy` — Sub-Task 7
+- Sub-Task 8: React production build fix
+- Sub-Task 9: Evaluation harness against live API
 
 **Completed sub-tasks:** Sub-Task 1 (monorepo scaffold), Sub-Task 2 (data contract),
 Sub-Task 3 (DataService + foundational tools + CSV import — 158,701 rows loaded),
 Sub-Task 4 (WatsonxClient + AgentOrchestrator), Sub-Task 5 (PolicyService + InvestigationService),
-Sub-Task 6 (analytical tools: velocity, spending, context — 3 new DataService methods, 3 tools, 22 tests).
+Sub-Task 6 (analytical tools: velocity, spending, context — 3 new DataService methods, 3 tools, 26 tests),
+Sub-Task 7 (remaining tools: checkMerchantHistory, checkCustomerRiskEvents, checkGeographicConsistency stub,
+getRiskPolicy — 2 new DataService methods, 4 tools, 148 tests total).
 See `docs/implementation-plan.md` for full status.
 
 ---

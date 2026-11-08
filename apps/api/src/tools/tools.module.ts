@@ -6,6 +6,10 @@ import { GetTransactionDetailsTool } from './get-transaction-details.tool.js';
 import { AnalyzeTransactionVelocityTool } from './analyze-transaction-velocity.tool.js';
 import { AnalyzeSpendingPatternTool } from './analyze-spending-pattern.tool.js';
 import { AnalyzeTransactionContextTool } from './analyze-transaction-context.tool.js';
+import { CheckMerchantHistoryTool } from './check-merchant-history.tool.js';
+import { CheckCustomerRiskEventsTool } from './check-customer-risk-events.tool.js';
+import { CheckGeographicConsistencyTool } from './check-geographic-consistency.tool.js';
+import { GetRiskPolicyTool } from './get-risk-policy.tool.js';
 
 /**
  * ToolsModule — groups all real tool providers.
@@ -21,6 +25,10 @@ import { AnalyzeTransactionContextTool } from './analyze-transaction-context.too
     AnalyzeTransactionVelocityTool,
     AnalyzeSpendingPatternTool,
     AnalyzeTransactionContextTool,
+    CheckMerchantHistoryTool,
+    CheckCustomerRiskEventsTool,
+    CheckGeographicConsistencyTool,
+    GetRiskPolicyTool,
   ],
 })
 export class ToolsModule {}
