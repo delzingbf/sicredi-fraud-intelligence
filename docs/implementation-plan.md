@@ -2,7 +2,7 @@
 
 **Project:** Sicredi Fraud Intelligence — Hello Moto team
 **Status:** ACTIVE
-**Last updated:** 2026-11-06
+**Last updated:** 2026-11-08
 
 ---
 
@@ -30,7 +30,7 @@ original architecture record (`docs/fraud-intelligence-architecture-plan.md`).
 | TypeORM integration + migrations | ✅ IMPLEMENTED — Sub-Task 3 |
 | DataService / CSV import / migrations | ✅ IMPLEMENTED — Sub-Tasks 2–3 |
 | `WatsonxClient` + `ToolRegistry` + `AgentOrchestrator` | ✅ IMPLEMENTED — real IBM; two PostgreSQL tools |
-| Analytical tools (velocity, spending, context) | ⏳ PENDING — Sub-Task 6 |
+| Analytical tools (velocity, spending, context) | ✅ DONE — Sub-Task 6 |
 | Remaining data tools | ⏳ PENDING — Sub-Task 7 |
 | Simulated member verification + policy gate | ✅ IMPLEMENTED — post-investigation endpoints |
 | React investigation UI | Integrated in development; production build fix pending (Sub-Task 8) |
@@ -170,10 +170,13 @@ src/
 │   ├── data.module.ts
 │   ├── data.service.ts
 │   └── transaction.entity.ts
-└── tools/                            ← two PostgreSQL tools; analytics pending
+└── tools/                            ← five PostgreSQL tools registered
     ├── tools.module.ts
     ├── get-transaction-details.tool.ts
-    └── get-customer-profile.tool.ts
+    ├── get-customer-profile.tool.ts
+    ├── analyze-transaction-velocity.tool.ts
+    ├── analyze-spending-pattern.tool.ts
+    └── analyze-transaction-context.tool.ts
 ```
 
 ### Service boundaries
@@ -250,6 +253,46 @@ export interface VerificationRecord {
   status: VerificationStatus;
   requestedAt: string;      // ISO-8601
   resolvedAt?: string;      // ISO-8601
+}
+
+// ── Tool-specific data types (Sub-Tasks 3, 6) ─────────────────────────────────
+
+export interface TransactionDetails { /* see contracts/src/index.ts */ }
+export interface CustomerProfile    { /* see contracts/src/index.ts */ }
+
+// Added in Sub-Task 6:
+export interface VelocityAnalysis {
+  countLast1m: number | null;       // pre-computed from cardid_count_1m
+  distPrevTerminal1h: number | null; // pre-computed from cp_card_prev_term_dist_1h
+  velocityTerminal1h: number | null; // pre-computed from cp_card_term_vel_1h
+  countLast1h: number;              // dynamic window query
+  countLast24h: number;
+  totalAmountLast1h: number;
+}
+
+export interface SpendingPattern {
+  avgAmount: number | null;
+  stddevAmount: number | null;
+  p95Amount: number | null;
+  historicalTransactionCount: number;
+  lastTransactionAt: string | null;  // ISO-8601
+  currentAmount: number | null;
+  zScore: number | null;             // null when stddev=0 or no history
+}
+
+export interface TransactionContext {
+  hourOfDay: number;                 // 0–23, UTC
+  dayOfWeek: number;                 // 0=Sunday
+  isWeekend: boolean;
+  channel: string | null;
+  transactionType: string | null;
+  modality: string | null;
+  cardPresent: boolean | null;
+  historicalChannelDistribution: Record<string, number>;
+  historicalHourDistribution: Record<string, number>;
+  historicalTransactionCount: number;
+  isUnknownChannel: boolean;
+  isUnusualHour: boolean;            // no activity within ±2h of current hour
 }
 ```
 
@@ -522,34 +565,31 @@ post-investigation action through the endpoints above, gated by
 **Intent:** Implement the three medium-priority analytical tools that provide the
 core fraud signals. These depend on `DataService` (Sub-Task 3) being complete.
 
-**Status:** [ ] pending
+**Status:** [x] done — 2026-11-08
 
-**Expected Outcomes:**
-- `analyzeTransactionVelocity` returns counts and amounts for configurable time windows.
-- `analyzeSpendingPattern` compares the transaction amount to the customer's historical
-  spending statistics (mean, std dev, p95).
-- `analyzeTransactionContext` flags anomalies in hour-of-day, transaction channel,
-  and transaction type based on the customer's historical patterns.
-- All three tools return `ToolResult<T>` with the standard envelope.
-- If data is insufficient for statistics, the tool returns `status: 'unavailable'`
-  with a `message` explaining why.
-- Unit tests cover normal case, anomaly case, and missing data case.
+**Delivered:**
 
-**Todo:**
-1. Implement `analyzeTransactionVelocity` — use only pre-authorization temporal data.
-   Check if pre-computed velocity columns exist (from `docs/data-contract.md`) before
-   computing dynamically.
-2. Implement `analyzeSpendingPattern` — compute per-customer stats from historical
-   transactions; exclude the current transaction from the history window.
-3. Implement `analyzeTransactionContext` — extract temporal features (hour bin, weekend/weekday)
-   and compare against customer's historical distribution.
-4. Register all three in `ToolRegistry` with rich descriptions.
-5. Write unit tests.
+| File | Description |
+|---|---|
+| `packages/contracts/src/index.ts` | Added `VelocityAnalysis`, `SpendingPattern`, `TransactionContext` interfaces |
+| `apps/api/src/data/data.service.ts` | Added `getCardVelocity()`, `getCustomerSpendingStats()`, `getCustomerContextStats()` |
+| `apps/api/src/tools/analyze-transaction-velocity.tool.ts` | `analyzeTransactionVelocity` — pre-computed varchar fields + dynamic 1h/24h window queries |
+| `apps/api/src/tools/analyze-spending-pattern.tool.ts` | `analyzeSpendingPattern` — `AVG`/`STDDEV`/`PERCENTILE_CONT` + z-score, `unavailable` when no history |
+| `apps/api/src/tools/analyze-transaction-context.tool.ts` | `analyzeTransactionContext` — UTC temporal features, ±2h hour window, `isUnknownChannel`/`isUnusualHour` |
+| `apps/api/src/tools/tools.module.ts` | Updated with 3 new providers (5 total) |
+| `apps/api/src/tools/*.tool.spec.ts` (×3) | 22 unit tests — happy path, missing args, DB throw, edge cases |
 
-**Relevant Context:**
-- `docs/data-contract.md` will specify which velocity columns are pre-computed vs. need computation.
-- Do NOT include `feedback_label` or post-authorization columns in any computation.
-- `analyzeTransactionVelocity` was already used in the PoC — same tool name, extend to real data.
+**Key implementation details:**
+- Pre-computed velocity columns (`cardid_count_1m`, `cp_card_prev_term_dist_1h`, `cp_card_term_vel_1h`) are `VARCHAR(50)` in the entity — parsed to `number | null` with `parseFloat` + `isNaN` guard; absent fields listed in `missingFields`.
+- `getCustomerSpendingStats` uses a raw SQL query because TypeORM QueryBuilder does not support `PERCENTILE_CONT`.
+- `analyzeTransactionContext` uses UTC methods (`getUTCHours`, `getUTCDay`) for timezone-safe computation; hour ±2h wraps via `((h + offset) % 24 + 24) % 24`.
+- `analyzeSpendingPattern` returns `status: 'unavailable'` (not `not_found`) when `transactionCount === 0` — consistent with "data exists but is insufficient".
+- All tools catch DB exceptions and return `status: 'unavailable'` — never throw.
+- `ToolRegistry.size === 5` after all tools register.
+
+**Validation (2026-11-08):**
+- `pnpm --filter @fraud-intelligence/api build` — clean, zero TypeScript errors.
+- `pnpm --filter @fraud-intelligence/api test` — 122/122 tests passing across 12 files.
 
 **Owner:** Dev A
 

@@ -130,6 +130,75 @@ export interface CustomerProfile {
   phoneChangeFlag: boolean | null;
 }
 
+/** Data returned by the `analyzeTransactionVelocity` tool. */
+export interface VelocityAnalysis {
+  /** Pre-computed from column cardid_count_1m — number of card uses in last 1 min */
+  countLast1m: number | null;
+  /** Pre-computed from column cp_card_prev_term_dist_1h — distance from previous terminal (km) */
+  distPrevTerminal1h: number | null;
+  /** Pre-computed from column cp_card_term_vel_1h — velocity between terminals (km/h) */
+  velocityTerminal1h: number | null;
+  /** Dynamic: count of transactions for this card in the last 1 hour */
+  countLast1h: number;
+  /** Dynamic: count of transactions for this card in the last 24 hours */
+  countLast24h: number;
+  /** Dynamic: total amount spent on this card in the last 1 hour */
+  totalAmountLast1h: number;
+}
+
+/** Data returned by the `analyzeSpendingPattern` tool. */
+export interface SpendingPattern {
+  /** Average transaction amount from customer history */
+  avgAmount: number | null;
+  /** Standard deviation of transaction amounts */
+  stddevAmount: number | null;
+  /** 95th percentile of transaction amounts */
+  p95Amount: number | null;
+  /** Number of historical transactions used in the calculation */
+  historicalTransactionCount: number;
+  /** ISO-8601 timestamp of the most recent historical transaction */
+  lastTransactionAt: string | null;
+  /** Current transaction amount (for comparison) */
+  currentAmount: number | null;
+  /** How many std deviations the current amount is from the mean (null if stddev=0 or no history) */
+  zScore: number | null;
+}
+
+/** Data returned by the `analyzeTransactionContext` tool. */
+export interface TransactionContext {
+  /** Hour of day the transaction occurred (0–23) */
+  hourOfDay: number;
+  /** Day of week (0=Sunday, 6=Saturday) */
+  dayOfWeek: number;
+  /** Whether the transaction occurred on a weekend */
+  isWeekend: boolean;
+  /** Transaction channel from the current transaction */
+  channel: string | null;
+  /** Transaction type from the current transaction (debito | credito) */
+  transactionType: string | null;
+  /** Transaction modality from the current transaction */
+  modality: string | null;
+  /** Whether physical card was present */
+  cardPresent: boolean | null;
+  /**
+   * Customer's historical channel distribution.
+   * Keys are channel names, values are transaction counts.
+   * Excludes the current transaction.
+   */
+  historicalChannelDistribution: Record<string, number>;
+  /**
+   * Customer's historical hour-of-day distribution.
+   * Keys are hour strings ("0"–"23"), values are transaction counts.
+   */
+  historicalHourDistribution: Record<string, number>;
+  /** Total historical transactions used for distribution (excludes current) */
+  historicalTransactionCount: number;
+  /** True if the current channel has never been seen in the customer's history */
+  isUnknownChannel: boolean;
+  /** True if the current hour bin (±2h) has never been seen in the customer's history */
+  isUnusualHour: boolean;
+}
+
 // ─── Member Verification (simulated) ─────────────────────────────────────────
 
 export type VerificationStatus = 'PENDING' | 'CONFIRMED' | 'DENIED';
