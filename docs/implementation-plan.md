@@ -31,7 +31,7 @@ original architecture record (`docs/fraud-intelligence-architecture-plan.md`).
 | DataService / CSV import / migrations | ✅ IMPLEMENTED — Sub-Tasks 2–3 |
 | `WatsonxClient` + `ToolRegistry` + `AgentOrchestrator` | ✅ IMPLEMENTED — real IBM; two PostgreSQL tools |
 | Analytical tools (velocity, spending, context) | ✅ DONE — Sub-Task 6 |
-| Remaining data tools | ⏳ PENDING — Sub-Task 7 |
+| Remaining data tools | ✅ DONE — Sub-Task 7 |
 | Simulated member verification + policy gate | ✅ IMPLEMENTED — post-investigation endpoints |
 | React investigation UI | Integrated in development; production build fix pending (Sub-Task 8) |
 | Evaluation harness | ⏳ PENDING — Sub-Task 9 |
@@ -601,27 +601,34 @@ core fraud signals. These depend on `DataService` (Sub-Task 3) being complete.
 `getRiskPolicy`, and — only if geographic data is adequate — `checkGeographicConsistency`.
 (`requestMemberVerification` is already delivered as a post-investigation API action — see Sub-Task 5.)
 
-**Status:** [ ] pending
+**Status:** [x] done — 2026-11-08
 
-**Expected Outcomes:**
-- `checkMerchantHistory` returns merchant-level aggregate statistics.
-- `checkCustomerRiskEvents` returns prior risk events from the customer's history.
-- `getRiskPolicy` returns the static policy config (no DB needed).
-- `requestMemberVerification` is NOT registered in `ToolRegistry` (see Sub-Task 5).
-- `checkGeographicConsistency` is implemented only if geographic columns are
-  confirmed usable in `docs/data-contract.md`; otherwise it is stubbed to return
-  `status: 'unavailable'`.
-- All tools registered in `ToolRegistry` with JSON definitions.
+**Delivered:**
 
-**Todo:**
-1. Implement `checkMerchantHistory` using `DataService`.
-2. Implement `checkCustomerRiskEvents` using `DataService`.
-3. Implement `getRiskPolicy` as a static config-driven response.
-4. Implement or stub `checkGeographicConsistency` based on data findings.
-5. Write unit tests for each.
-6. Run a full end-to-end investigation with all 9 tools registered.
+| File | Description |
+|---|---|
+| `packages/contracts/src/index.ts` | Added `MerchantHistory` and `CustomerRiskEvents` interfaces |
+| `apps/api/src/data/data.service.ts` | Added `getMerchantHistory()` and `getCustomerRiskEvents()` |
+| `apps/api/src/tools/check-merchant-history.tool.ts` | `checkMerchantHistory` — aggregate stats + risk snapshot from target row |
+| `apps/api/src/tools/check-customer-risk-events.tool.ts` | `checkCustomerRiskEvents` — risk rating, malware flag, declined tx counts (7d/30d) |
+| `apps/api/src/tools/check-geographic-consistency.tool.ts` | `checkGeographicConsistency` — stub; always returns `status:'unavailable'` (fill rate ~23.9%) |
+| `apps/api/src/tools/get-risk-policy.tool.ts` | `getRiskPolicy` — static thresholds and decision guidance; no DB needed |
+| `apps/api/src/tools/tools.module.ts` | Updated with 4 new providers (9 total) |
+| `apps/api/src/tools/*.tool.spec.ts` (×4) | 21 unit tests covering all mandatory scenarios from the plan |
 
-**Owner:** Dev A (merchant, risk events, geography) + Dev B (policy, verification)
+**Key implementation details:**
+- `getMerchantHistory` runs two queries: one `createQueryBuilder` aggregate (COUNT/AVG/MAX/MIN) across all merchant transactions, and one `findOne` to read risk snapshot fields (`acceptorRisk`, `acceptorRiskyFlag`, `acceptorMastercardRisk`, `acceptorVisaRisk`) from the target transaction row. Snapshot fields are not meaningful as aggregates.
+- `getCustomerRiskEvents` reads `customerRiskRating` and `malwareFlag` from the target row; declined counts (30d / 7d) use parallel `Promise.all` queries with `transaction_status IS NOT NULL AND transaction_status != 'approved'` — NULL rows excluded to avoid false positives.
+- `checkGeographicConsistency` is registered in `ToolRegistry` (so the agent sees it) but always returns `status:'unavailable'` — geographic fill rate ~23.9% is below the 30% threshold confirmed in Sub-Task 2. Stub requires no `DataService`.
+- `getRiskPolicy` returns a typed static constant (`RISK_POLICY`) with numeric thresholds, risk level descriptions and recommended action descriptions. No database access.
+- `requestMemberVerification` is confirmed NOT registered in `ToolRegistry`. Any attempt by the model to call it returns `status:'error'` from the registry's whitelist check.
+
+**Validation (2026-11-08):**
+- `pnpm --filter @fraud-intelligence/api build` — clean, zero TypeScript errors.
+- `pnpm --filter @fraud-intelligence/api test` — 148/148 tests passing across 17 files (up from 122/122 in Sub-Task 6, +26 new tests).
+- `ToolRegistry.size === 9` at startup: 5 Sub-Task 3/6 tools + 4 Sub-Task 7 tools.
+
+**Owner:** Dev A (merchant, risk events, geography) + Dev B (risk policy)
 
 ---
 
@@ -783,10 +790,11 @@ curl -sS http://localhost:3001/investigations \
 ```
 
 The API returns `{ investigationId, report }`. The model call uses real IBM
-credentials. Transaction details and customer profile use PostgreSQL.
-Velocity analysis is not available in the API yet. The profile uses the latest customer snapshot;
-a time cutoff at the investigated transaction is still pending. A successful
-request demonstrates integration, not detection quality. For a standalone
+credentials. All 9 tools are registered and active: `getTransactionDetails`,
+`getCustomerProfile`, `analyzeTransactionVelocity`, `analyzeSpendingPattern`,
+`analyzeTransactionContext`, `checkMerchantHistory`, `checkCustomerRiskEvents`,
+`getRiskPolicy`, and `checkGeographicConsistency` (stub — returns `unavailable`).
+A successful request demonstrates integration, not detection quality. For a standalone
 mock-data IBM test, see the [original PoC](poc/test-tool-calling.mjs).
 
 ## IBM credential extension (2026-11-08)

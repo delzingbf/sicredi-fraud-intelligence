@@ -199,6 +199,40 @@ export interface TransactionContext {
   isUnusualHour: boolean;
 }
 
+/** Data returned by the `checkMerchantHistory` tool. */
+export interface MerchantHistory {
+  /** acceptor_id used as lookup key */
+  merchantId: string;
+  /** Total number of transactions processed by this merchant in the dataset */
+  totalTransactions: number;
+  /** Average transaction amount across all merchant transactions */
+  avgAmount: number | null;
+  /** Maximum transaction amount */
+  maxAmount: number | null;
+  /** Minimum transaction amount */
+  minAmount: number | null;
+  /** Static risk score assigned to the merchant (from target transaction row) */
+  acceptorRisk: number | null;
+  /** Numeric risk flag assigned to the merchant (from target transaction row) */
+  acceptorRiskyFlag: number | null;
+  /** Mastercard-specific risk score (from target transaction row) */
+  acceptorMastercardRisk: number | null;
+  /** Visa-specific risk score (from target transaction row) */
+  acceptorVisaRisk: number | null;
+}
+
+/** Data returned by the `checkCustomerRiskEvents` tool. */
+export interface CustomerRiskEvents {
+  /** Categorical risk rating from the current transaction snapshot */
+  riskRating: string | null;
+  /** Whether malware was detected on the device at transaction time */
+  malwareFlag: boolean | null;
+  /** Count of non-approved transactions by this customer in the last 30 days */
+  declinedLast30d: number;
+  /** Count of non-approved transactions by this customer in the last 7 days */
+  declinedLast7d: number;
+}
+
 // ─── Member Verification (simulated) ─────────────────────────────────────────
 
 export type VerificationStatus = 'PENDING' | 'CONFIRMED' | 'DENIED';

@@ -205,4 +205,117 @@ export class DataService {
 
     return { channelDistribution, hourDistribution, totalCount };
   }
+
+  /**
+   * Returns aggregate transaction statistics for a merchant (acceptor_id).
+   *
+   * Static risk fields (acceptorRisk, acceptorRiskyFlag, etc.) are read
+   * from the target transaction row — they are per-row snapshot values, not
+   * aggregates. The aggregate (count, avg, min, max amount) covers ALL
+   * transactions for that merchant in the dataset.
+   *
+   * Returns null for all numeric aggregates if the merchant has no transactions.
+   */
+  async getMerchantHistory(
+    acceptorId: string,
+    transactionId: string,
+  ): Promise<{
+    totalTransactions: number;
+    avgAmount: number | null;
+    maxAmount: number | null;
+    minAmount: number | null;
+    acceptorRisk: number | null;
+    acceptorRiskyFlag: number | null;
+    acceptorMastercardRisk: number | null;
+    acceptorVisaRisk: number | null;
+  }> {
+    // 1. Aggregate stats across all merchant transactions
+    const agg = await this.repo
+      .createQueryBuilder('t')
+      .select('COUNT(*)', 'total')
+      .addSelect('AVG(t.amount)', 'avg_amount')
+      .addSelect('MAX(t.amount)', 'max_amount')
+      .addSelect('MIN(t.amount)', 'min_amount')
+      .where('t.acceptor_id = :acceptorId', { acceptorId })
+      .getRawOne<{
+        total: string;
+        avg_amount: string | null;
+        max_amount: string | null;
+        min_amount: string | null;
+      }>();
+
+    // 2. Static risk fields from the target transaction row
+    const row = await this.repo.findOne({
+      where: { id: transactionId },
+      select: ['acceptorRisk', 'acceptorRiskyFlag', 'acceptorMastercardRisk', 'acceptorVisaRisk'],
+    });
+
+    return {
+      totalTransactions: parseInt(agg?.total ?? '0', 10),
+      avgAmount: agg?.avg_amount != null ? parseFloat(agg.avg_amount) : null,
+      maxAmount: agg?.max_amount != null ? parseFloat(agg.max_amount) : null,
+      minAmount: agg?.min_amount != null ? parseFloat(agg.min_amount) : null,
+      acceptorRisk: row?.acceptorRisk ?? null,
+      acceptorRiskyFlag: row?.acceptorRiskyFlag ?? null,
+      acceptorMastercardRisk: row?.acceptorMastercardRisk ?? null,
+      acceptorVisaRisk: row?.acceptorVisaRisk ?? null,
+    };
+  }
+
+  /**
+   * Returns risk signals for a customer:
+   *  - riskRating and malwareFlag from the target transaction row (snapshot)
+   *  - declinedLast30d / declinedLast7d: dynamic counts of non-approved
+   *    transactions in the last 30 and 7 days respectively.
+   *
+   * "Declined" = transaction_status IS NOT NULL AND transaction_status != 'approved'.
+   * NULL status rows are excluded to avoid false positives from missing data.
+   */
+  async getCustomerRiskEvents(
+    customerId: string,
+    transactionId: string,
+  ): Promise<{
+    riskRating: string | null;
+    malwareFlag: boolean | null;
+    declinedLast30d: number;
+    declinedLast7d: number;
+  }> {
+    const now = new Date();
+    const window30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const window7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // 1. Snapshot fields from the target transaction row
+    const row = await this.repo.findOne({
+      where: { id: transactionId },
+      select: ['customerRiskRating', 'malwareFlag'],
+    });
+
+    // 2. Declined counts (parallel queries)
+    const [dec30, dec7] = await Promise.all([
+      this.repo
+        .createQueryBuilder('t')
+        .select('COUNT(*)', 'count')
+        .where('t.customer_id = :customerId', { customerId })
+        .andWhere('t.transaction_status IS NOT NULL')
+        .andWhere("t.transaction_status != 'approved'")
+        .andWhere('t.event_occurred_at >= :from', { from: window30d })
+        .getRawOne<{ count: string }>(),
+
+      this.repo
+        .createQueryBuilder('t')
+        .select('COUNT(*)', 'count')
+        .where('t.customer_id = :customerId', { customerId })
+        .andWhere('t.transaction_status IS NOT NULL')
+        .andWhere("t.transaction_status != 'approved'")
+        .andWhere('t.event_occurred_at >= :from', { from: window7d })
+        .getRawOne<{ count: string }>(),
+    ]);
+
+    return {
+      riskRating: row?.customerRiskRating ?? null,
+      malwareFlag: row?.malwareFlag ?? null,
+      declinedLast30d: parseInt(dec30?.count ?? '0', 10),
+      declinedLast7d: parseInt(dec7?.count ?? '0', 10),
+    };
+  }
 }
