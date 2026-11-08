@@ -165,18 +165,19 @@ For credential setup, see `docs/IBM_WATSONX_SETUP.md`.
 
 ---
 
-## Current status (2026-11-06)
+## Current status (2026-11-08)
 
 - The React investigation UI is integrated in development (Sub-Task 8); the production build fix remains pending.
-- Transaction details and customer profile query PostgreSQL. Velocity analysis is not registered in the API until its PostgreSQL implementation is available.
+- All 5 active tools query PostgreSQL: `getTransactionDetails`, `getCustomerProfile`,
+  `analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext`.
 
 Pending:
-- Analytical tools: `analyzeTransactionVelocity`, `analyzeSpendingPattern`, `analyzeTransactionContext` — Sub-Task 6
 - Remaining tools: `checkMerchantHistory`, `checkCustomerRiskEvents`, `getRiskPolicy` — Sub-Task 7
 
 **Completed sub-tasks:** Sub-Task 1 (monorepo scaffold), Sub-Task 2 (data contract),
 Sub-Task 3 (DataService + foundational tools + CSV import — 158,701 rows loaded),
-Sub-Task 4 (WatsonxClient + AgentOrchestrator), Sub-Task 5 (PolicyService + InvestigationService).
+Sub-Task 4 (WatsonxClient + AgentOrchestrator), Sub-Task 5 (PolicyService + InvestigationService),
+Sub-Task 6 (analytical tools: velocity, spending, context — 3 new DataService methods, 3 tools, 22 tests).
 See `docs/implementation-plan.md` for full status.
 
 ---

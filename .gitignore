@@ -7,3 +7,10 @@ dist/
 *.log
 /data/*
 !/data/.gitkeep
+
+# IBM Bob workspace data
+.bob/
+
+# Compiled native binaries
+a.out
+*.out
